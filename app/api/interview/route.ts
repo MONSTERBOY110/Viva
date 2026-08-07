@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { generateReport } from "@/lib/engine/feedback";
 import { buildPlan } from "@/lib/engine/planner";
 import { seedQuestion } from "@/lib/engine/questions";
 import { runTurn } from "@/lib/engine/turn";
+import { recallCandidateMemories, writeInterviewMemory } from "@/lib/store/breeth";
 import { getSessionStore } from "@/lib/store/session";
 import type { Candidate, SessionState } from "@/lib/types";
 
@@ -88,6 +89,9 @@ export async function POST(req: Request) {
       result.state.phase = "done";
       result.state.report = report;
       await store.set(sessionId, result.state);
+      // Long-term memory write happens after the response is sent (Breeth, TRD §6).
+      const finished = result.state;
+      after(() => writeInterviewMemory(finished));
       return NextResponse.json({
         reply: result.reply,
         done: true,
@@ -112,7 +116,8 @@ async function startSession(
   sessionId: string,
   candidate: Candidate,
 ): Promise<SessionState> {
-  const plan = await buildPlan(candidate);
+  const priorMemories = await recallCandidateMemories(candidate.member?.id);
+  const plan = await buildPlan(candidate, priorMemories);
   const first = plan.topics[0];
   return {
     sessionId,
@@ -131,6 +136,7 @@ async function startSession(
     ],
     coverage: [first.day],
     confidence: {},
+    priorMemories,
   };
 }
 
@@ -139,10 +145,17 @@ function openingReply(state: SessionState): string {
   const name = state.candidate.member?.name?.trim();
   const first = state.plan!.topics[0];
   const greeting = name ? `Welcome, ${name}` : "Welcome";
-  const reason = first.reasonDetail.trim().replace(/[.!]+$/, "");
+  const reason = first.reasonDetail
+    .trim()
+    .replace(/^we'?ll start where it matters most:?\s*/i, "")
+    .replace(/[.!]+$/, "");
+  const continuity =
+    (state.priorMemories ?? []).length > 0
+      ? " I also remember our previous conversation — I'll be checking how far you've come since."
+      : "";
   return (
     `${greeting} — I'm Viva, your technical interviewer. I've been through your 31-day journey, ` +
-    `and I've planned our conversation around it. We'll start where it matters most: ${reason}.` +
+    `and I've planned our conversation around it.${continuity} We'll start where it matters most: ${reason}.` +
     `\n\n${state.turns![0].q}`
   );
 }

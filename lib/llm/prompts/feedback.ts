@@ -19,6 +19,12 @@ export function feedbackPrompt(state: SessionState): string {
     `CANDIDATE: ${state.candidate.member?.name ?? "custom candidate"} (${state.candidate.member?.jobRole ?? "unknown role"})`,
   );
   if (plan) sections.push(`PERSONA NOTES: ${plan.personaNotes}`);
+  if ((state.priorMemories ?? []).length > 0) {
+    sections.push(
+      "MEMORY FROM PREVIOUS INTERVIEWS (if a past gap improved or persisted, say so explicitly in the summary):",
+      ...state.priorMemories!.map((m) => `- ${m}`),
+    );
+  }
   if (state.confidence && Object.keys(state.confidence).length > 0) {
     sections.push(
       "MODULE CONFIDENCE: " +

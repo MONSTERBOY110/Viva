@@ -10,7 +10,10 @@ import { isFirstTryStrongSignals, pickTopics, type CurriculumModule } from "./po
  * best-effort LLM call to write personaNotes + vivid reasonDetail lines.
  * The plan is fully functional without the LLM — prose just gets plainer.
  */
-export async function buildPlan(candidate: Candidate): Promise<InterviewPlan> {
+export async function buildPlan(
+  candidate: Candidate,
+  priorMemories: string[] = [],
+): Promise<InterviewPlan> {
   const modules = curriculum.modules as CurriculumModule[];
   const topics = pickTopics(candidate, modules);
   const plan: InterviewPlan = {
@@ -23,7 +26,7 @@ export async function buildPlan(candidate: Candidate): Promise<InterviewPlan> {
     try {
       const polish = await generateStructured(PlanPolishSchema, {
         system: PLANNER_SYSTEM,
-        prompt: plannerPrompt(candidate, topics),
+        prompt: plannerPrompt(candidate, topics, priorMemories),
         temperature: 0.8,
       });
       plan.personaNotes = polish.personaNotes;

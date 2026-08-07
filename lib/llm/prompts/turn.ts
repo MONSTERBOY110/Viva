@@ -54,6 +54,14 @@ export function turnPrompt(
     );
   }
 
+  if ((state.priorMemories ?? []).length > 0) {
+    sections.push(
+      "",
+      "MEMORY FROM PREVIOUS INTERVIEWS (re-probe past gaps when natural; acknowledge improvement):",
+      ...state.priorMemories!.map((m) => `- ${m}`),
+    );
+  }
+
   sections.push(
     "",
     `PROGRESS: ${turns.length} questions asked · days covered: ${covered.join(", ") || "none"}`,

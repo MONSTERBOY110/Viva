@@ -123,4 +123,6 @@ export type SessionState = {
   confidence?: Record<string, number>;
   /** Final report, stored on wrap for idempotent end responses + report UI. */
   report?: { feedback: Feedback; evidenceMap?: EvidenceItem[] };
+  /** Facts recalled from Breeth about previous interviews (continuity). */
+  priorMemories?: string[];
 };
