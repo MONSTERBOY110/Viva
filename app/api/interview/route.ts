@@ -139,9 +139,10 @@ function openingReply(state: SessionState): string {
   const name = state.candidate.member?.name?.trim();
   const first = state.plan!.topics[0];
   const greeting = name ? `Welcome, ${name}` : "Welcome";
+  const reason = first.reasonDetail.trim().replace(/[.!]+$/, "");
   return (
     `${greeting} — I'm Viva, your technical interviewer. I've been through your 31-day journey, ` +
-    `and I've planned our conversation around it. We'll start where it matters most: ${first.reasonDetail}. ` +
+    `and I've planned our conversation around it. We'll start where it matters most: ${reason}.` +
     `\n\n${state.turns![0].q}`
   );
 }

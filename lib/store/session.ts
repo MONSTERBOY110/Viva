@@ -59,10 +59,14 @@ class RedisSessionStore implements SessionStore {
 
 // The Vercel Marketplace integration injects UPSTASH_*; older Vercel KV
 // setups inject KV_REST_API_* — accept either so provisioning can't miss.
+// Unfilled .env.example placeholders ("your-...") must not count as configured,
+// or local dev silently points the store at a non-existent host.
 function redisCredentials(): { url: string; token: string } | null {
   const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
-  return url && token ? { url, token } : null;
+  if (!url || !token) return null;
+  if (url.includes("your-") || token.startsWith("your-")) return null;
+  return { url, token };
 }
 
 /** Which backend the store is using — surfaced on /api/health for ops sanity. */

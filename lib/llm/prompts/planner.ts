@@ -10,6 +10,8 @@ You receive a candidate profile (role, experience, mission history with attempts
 Your job:
 1. personaNotes — one sharp line on how the interviewer should treat THIS candidate (tone, what to respect, what to push on).
 2. topicDetails — for each topic day, one vivid line explaining why it was chosen for THIS candidate, citing their actual history (attempts, skips, first-try passes).
+
+reasonDetail rules: address the candidate directly as "you", keep it a short clause with NO trailing period, written to complete the sentence "We'll start where it matters most: …" — e.g. "you needed 5 attempts to crack Vector Databases on Day 8".
 Be specific and human. Never invent history that isn't in the profile.`;
 
 export function plannerPrompt(candidate: Candidate, topics: PlannedTopic[]): string {
