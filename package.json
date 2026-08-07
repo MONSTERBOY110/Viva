@@ -6,13 +6,17 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "judge-sim": "tsx scripts/judge-sim.ts"
   },
   "dependencies": {
+    "@google/genai": "^2.16.0",
     "@upstash/redis": "^1.38.2",
     "next": "15.5.23",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -24,6 +28,7 @@
     "eslint-config-next": "15.5.23",
     "tailwindcss": "^4",
     "tsx": "^4.23.11",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

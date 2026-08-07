@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server";
+import { generateReport } from "@/lib/engine/feedback";
+import { buildPlan } from "@/lib/engine/planner";
+import { seedQuestion } from "@/lib/engine/questions";
+import { runTurn } from "@/lib/engine/turn";
 import { getSessionStore } from "@/lib/store/session";
 import type { Candidate, SessionState } from "@/lib/types";
-import {
-  CANNED_QUESTIONS,
-  TOTAL_QUESTIONS,
-  cannedWelcome,
-  cannedFeedback,
-} from "@/lib/engine/canned";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 /**
  * THE CONTRACT ENDPOINT (docs/technical-spec.md, TRD §3). Response shapes are
  * sacred: { reply, done } every turn, plus { feedback } when done is true.
  * Extra fields may only ever be added, never renamed or removed.
+ *
+ * Engine flow (TRD §5): start → plan from the candidate's journey; each turn →
+ * one structured LLM call guarded by deterministic policy; wrap → evidence-
+ * linked report. Every stage has a deterministic fallback, so the interview
+ * completes even with the LLM chain down.
  *
  * Defensive paths (never 5xx to a judge):
  *  - malformed / non-JSON body        → 400 with a JSON error message
@@ -32,9 +36,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const { sessionId, candidate } = (body ?? {}) as {
+    const { sessionId, candidate, message } = (body ?? {}) as {
       sessionId?: unknown;
       candidate?: Candidate;
+      message?: unknown;
     };
 
     if (typeof sessionId !== "string" || sessionId.trim() === "") {
@@ -48,68 +53,50 @@ export async function POST(req: Request) {
 
     // Start (or explicit restart): the request carries a candidate object.
     if (candidate && typeof candidate === "object") {
-      const state: SessionState = {
-        sessionId,
-        candidate,
-        askedCount: 1,
-        phase: "active",
-        startedAt: new Date().toISOString(),
-      };
+      const state = await startSession(sessionId, candidate);
       await store.set(sessionId, state);
-      return NextResponse.json({
-        reply: `${cannedWelcome(candidate)}\n\nFirst question: ${CANNED_QUESTIONS[0].q}`,
-        done: false,
-      });
+      return NextResponse.json({ reply: openingReply(state), done: false });
     }
 
-    const session = await store.get(sessionId);
+    let session = await store.get(sessionId);
 
-    // Unknown session and no candidate to start from: recover in character, never error.
+    // Unknown session and no candidate to start from: recover in character.
     if (!session) {
-      const state: SessionState = {
-        sessionId,
-        candidate: {},
-        askedCount: 1,
-        phase: "active",
-        startedAt: new Date().toISOString(),
-      };
-      await store.set(sessionId, state);
+      session = await startSession(sessionId, {});
+      await store.set(sessionId, session);
       return NextResponse.json({
-        reply: `Apologies — I don't have our earlier thread on file, so let's restart cleanly. ${CANNED_QUESTIONS[0].q}`,
+        reply: `Apologies — I don't have our earlier thread on file, so let's restart cleanly. ${session.turns![0].q}`,
         done: false,
       });
     }
 
     // Session already concluded: repeat the closing response idempotently.
-    if (session.phase === "done") {
+    if (session.phase === "done" && session.report) {
       return NextResponse.json({
         reply:
           "This interview has already concluded — thank you again for your time. Start a new session if you'd like another round.",
         done: true,
-        feedback: cannedFeedback(session.candidate),
+        feedback: session.report.feedback,
       });
     }
 
-    // The candidate just answered the final question: wrap with structured feedback.
-    if (session.askedCount >= TOTAL_QUESTIONS) {
-      session.phase = "done";
-      await store.set(sessionId, session);
+    // Regular turn: evaluate the answer, decide, ask — or wrap with the report.
+    const result = await runTurn(session, coerceMessage(message));
+
+    if (result.wrap) {
+      const report = await generateReport(result.state);
+      result.state.phase = "done";
+      result.state.report = report;
+      await store.set(sessionId, result.state);
       return NextResponse.json({
-        reply:
-          "That completes our interview — thank you for working through every question. Here is my structured feedback.",
+        reply: result.reply,
         done: true,
-        feedback: cannedFeedback(session.candidate),
+        feedback: report.feedback,
       });
     }
 
-    // Regular turn: acknowledge and ask the next planned question.
-    const next = CANNED_QUESTIONS[session.askedCount];
-    session.askedCount += 1;
-    await store.set(sessionId, session);
-    return NextResponse.json({
-      reply: `Noted, thank you. ${next.q}`,
-      done: false,
-    });
+    await store.set(sessionId, result.state);
+    return NextResponse.json({ reply: result.reply, done: false });
   } catch {
     // Absolute backstop — a judge must never see a 5xx (CLAUDE.md rule 5).
     return NextResponse.json({
@@ -118,4 +105,48 @@ export async function POST(req: Request) {
       done: false,
     });
   }
+}
+
+/** Build the plan and seed the first question from its highest-priority topic. */
+async function startSession(
+  sessionId: string,
+  candidate: Candidate,
+): Promise<SessionState> {
+  const plan = await buildPlan(candidate);
+  const first = plan.topics[0];
+  return {
+    sessionId,
+    candidate,
+    askedCount: 1,
+    phase: "active",
+    startedAt: new Date().toISOString(),
+    plan,
+    turns: [
+      {
+        q: seedQuestion(first.day),
+        day: first.day,
+        difficulty: first.startDifficulty,
+        rationale: `opening probe (${first.reason}): ${first.reasonDetail}`,
+      },
+    ],
+    coverage: [first.day],
+    confidence: {},
+  };
+}
+
+/** The 30-second test (PRD §6): the welcome proves we read their journey. */
+function openingReply(state: SessionState): string {
+  const name = state.candidate.member?.name?.trim();
+  const first = state.plan!.topics[0];
+  const greeting = name ? `Welcome, ${name}` : "Welcome";
+  return (
+    `${greeting} — I'm Viva, your technical interviewer. I've been through your 31-day journey, ` +
+    `and I've planned our conversation around it. We'll start where it matters most: ${first.reasonDetail}. ` +
+    `\n\n${state.turns![0].q}`
+  );
+}
+
+function coerceMessage(message: unknown): string {
+  if (typeof message === "string" && message.trim()) return message.trim();
+  return "(the candidate sent an empty message)";
 }
