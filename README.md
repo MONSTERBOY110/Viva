@@ -4,11 +4,14 @@
 
 An AI technical interviewer for the ABTalks 31 day AI cohort. It plans each interview from the candidate's real learning history, adapts every question to the previous answer, shows its reasoning live while it works, and proves every piece of feedback with the candidate's own words.
 
+| | |
 |---|---|
 | **Live demo** | https://viva-bay.vercel.app |
 | **Contract playground** | https://viva-bay.vercel.app/api-docs |
 | **AI usage log** | [PROMPTS.md](./PROMPTS.md) |
 | **Health** | https://viva-bay.vercel.app/api/health |
+
+Built solo for the ABTalks Vibe Code Hackathon, Problem Statement 2.
 
 ---
 
