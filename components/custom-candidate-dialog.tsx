@@ -60,7 +60,7 @@ export function CustomCandidateDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className="font-mono text-data text-dim underline decoration-rule underline-offset-4 transition-colors hover:text-quill hover:decoration-quill">
+      <DialogTrigger className="-my-2 py-2 font-mono text-data text-dim underline decoration-rule underline-offset-4 transition-colors hover:text-quill hover:decoration-quill">
         examine a custom candidate
       </DialogTrigger>
 
@@ -106,14 +106,14 @@ export function CustomCandidateDialog({
               setValue(TEMPLATE);
               setError(null);
             }}
-            className="font-mono text-data text-dim underline decoration-rule underline-offset-4 hover:text-ink"
+            className="-my-2 py-2 font-mono text-data text-dim underline decoration-rule underline-offset-4 hover:text-ink"
           >
             reset to template
           </button>
           <button
             type="button"
             onClick={start}
-            className="bg-quill-bright px-4 py-2 text-ui font-medium text-ground transition-opacity hover:opacity-90 active:opacity-80"
+            className="min-h-11 bg-quill-bright px-4 py-2 text-ui font-medium text-ground transition-opacity hover:opacity-90 active:opacity-80"
           >
             Begin interview
           </button>

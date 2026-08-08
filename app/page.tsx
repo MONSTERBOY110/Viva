@@ -13,26 +13,25 @@ export default function Home() {
           </span>
         </span>
         <nav className="flex items-center gap-5 font-mono text-data text-dim">
-          <Link href="/api-docs" className="transition-colors hover:text-quill">
+          <Link href="/api-docs" className="-my-2 py-2 transition-colors hover:text-quill">
             api
           </Link>
           <a
             href="https://github.com/MONSTERBOY110/Viva"
-            className="transition-colors hover:text-quill"
+            className="-my-2 py-2 transition-colors hover:text-quill"
           >
             source
           </a>
-          <Link href="/api/health" className="transition-colors hover:text-quill">
+          <Link href="/api/health" className="-my-2 py-2 transition-colors hover:text-quill">
             health
           </Link>
         </nav>
       </header>
 
       <section className="grid gap-6 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-end lg:gap-16 lg:py-14">
-        <h1 className="font-voice text-display font-medium text-ink">
+        <h1 className="font-voice text-[2rem] font-medium leading-[1.08] tracking-[-0.02em] text-ink text-balance sm:text-display">
           The interviewer that
-          <br />
-          already read your homework.
+          <br className="hidden sm:inline" /> already read your homework.
         </h1>
         <p className="max-w-[44ch] text-body text-dim lg:pb-1.5">
           Viva examines graduates of the 31 day AI cohort. Every question is

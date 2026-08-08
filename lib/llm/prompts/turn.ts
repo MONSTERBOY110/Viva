@@ -1,4 +1,5 @@
 import type { SessionState, Turn } from "@/lib/types";
+import { dayTitle } from "@/lib/engine/questions";
 
 /**
  * Turn prompts (TRD §5.2): one structured call per turn, evaluate the latest
@@ -27,7 +28,7 @@ function renderTurn(t: Turn, i: number): string {
   const evalLine = t.eval
     ? ` [scored ${t.eval.score.toFixed(2)} ${t.eval.classification}]`
     : "";
-  return `Q${i + 1} (Day ${t.day}, L${t.difficulty}): ${t.q}\n${answer}${evalLine}`;
+  return `Q${i + 1} (Day ${t.day} "${dayTitle(t.day)}", L${t.difficulty}): ${t.q}\n${answer}${evalLine}`;
 }
 
 const VERBATIM_TURNS = 5;
@@ -49,10 +50,14 @@ export function turnPrompt(
     sections.push(
       "INTERVIEW PLAN:",
       `Persona notes: ${plan.personaNotes}`,
+      // Day titles are included as ground truth. Without them the model
+      // invents topic names for a day and misattributes the curriculum.
       ...plan.topics.map(
         (t) =>
-          `- Day ${t.day} · ${t.module} · ${t.reason}: ${t.reasonDetail} (start L${t.startDifficulty})${covered.includes(t.day) ? " [covered]" : ""}`,
+          `- Day ${t.day} "${dayTitle(t.day)}" · ${t.module} · ${t.reason}: ${t.reasonDetail} (start L${t.startDifficulty})${covered.includes(t.day) ? " [covered]" : ""}`,
       ),
+      "",
+      "Only describe a day using the exact title given above. Never invent what a day covered.",
     );
   }
 

@@ -161,6 +161,26 @@
     color: var(--dim); /* 6.6:1, placeholders are text too */
   }
 
+  /* Browsers default buttons to the arrow cursor, which reads as inert. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* iOS zooms the viewport when a focused field is under 16px. */
+  @media (max-width: 640px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+
   .font-mono,
   [class*="font-mono"] {
     font-variant-numeric: tabular-nums;

@@ -125,6 +125,10 @@ export function InterviewRoom({
 
   return (
     <div className="mx-auto w-full max-w-[1240px] px-5 pb-40 sm:px-8 lg:pb-16">
+      <h1 className="sr-only">
+        Technical interview with {name}
+        {role ? `, ${role}` : ""}
+      </h1>
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-rule py-4">
         <div className="flex items-baseline gap-3">
           <Link
@@ -215,7 +219,7 @@ export function InterviewRoom({
                   type="button"
                   onClick={send}
                   disabled={thinking || draft.trim().length === 0}
-                  className="bg-quill-bright px-5 py-2 text-ui font-medium text-ground transition-opacity hover:opacity-90 active:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="min-h-11 bg-quill-bright px-5 py-2 text-ui font-medium text-ground transition-opacity hover:opacity-90 active:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {thinking ? "Sending" : "Send answer"}
                 </button>
