@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import gsap from "gsap";
 import { Ledger } from "@/components/ledger";
 import { Bar } from "@/components/skeleton-bits";
@@ -83,6 +83,12 @@ export function MindPanel({
 }) {
   const rationaleRef = useRef<HTMLParagraphElement>(null);
   const lastRationale = useRef<string>("");
+  /**
+   * The panel is mounted twice on small screens, once in the desktop column
+   * that Tailwind hides and once inside the mobile sheet, so a fixed id would
+   * be duplicated in the document and its label would bind ambiguously.
+   */
+  const steerDayId = useId();
 
   const current = view?.current ?? null;
   const coverage = view?.coverage;
@@ -183,11 +189,11 @@ export function MindPanel({
           </div>
           {topics.length > 0 && (
             <div className="mt-2.5">
-              <label className="sr-only" htmlFor="steer-day">
+              <label className="sr-only" htmlFor={steerDayId}>
                 Send the examiner to a specific curriculum day
               </label>
               <select
-                id="steer-day"
+                id={steerDayId}
                 value=""
                 onChange={(e) => {
                   const day = Number(e.target.value);

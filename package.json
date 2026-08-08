@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "judge-sim": "tsx scripts/judge-sim.ts",
-    "garbage-sim": "tsx scripts/garbage-sim.ts"
+    "garbage-sim": "tsx scripts/garbage-sim.ts",
+    "steer-sim": "tsx scripts/steer-sim.ts",
+    "rehearse": "tsx scripts/rehearse.ts"
   },
   "dependencies": {
     "@google/genai": "^2.16.0",
