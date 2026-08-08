@@ -11,8 +11,6 @@ An AI technical interviewer for the ABTalks 31 day AI cohort. It plans each inte
 | **AI usage log** | [PROMPTS.md](./PROMPTS.md) |
 | **Health** | https://viva-bay.vercel.app/api/health |
 
-Built solo for the ABTalks Vibe Code Hackathon, Problem Statement 2.
-
 ---
 
 ## The thirty second proof
