@@ -127,7 +127,7 @@ async function startSession(
   // together keeps the continuity line and the memory-aware turn prompts while
   // charging only the slower of the two.
   const [priorMemories, plan] = await Promise.all([
-    recallCandidateMemories(candidate.member?.id),
+    recallCandidateMemories(candidate.member?.id, candidate.member?.name),
     buildPlan(candidate),
   ]);
   const first = plan.topics[0];

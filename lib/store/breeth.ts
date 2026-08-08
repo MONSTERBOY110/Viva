@@ -62,16 +62,40 @@ export async function writeInterviewMemory(state: SessionState): Promise<void> {
   try {
     const name = state.candidate.member?.name ?? candidateId;
     const f: Feedback = state.report.feedback;
-    const days = [...new Set((state.turns ?? []).map((t) => t.day))].join(", ");
-    const content = [
-      `Interview with ${name} (${candidateId}) on ${state.startedAt.slice(0, 10)} covering curriculum days ${days}.`,
-      `Summary: ${f.summary}`,
-      f.strengths.length ? `Strengths: ${f.strengths.join(" | ")}` : "",
-      f.gaps.length ? `Gaps: ${f.gaps.join(" | ")}` : "",
-      f.next.length ? `Recommended next steps: ${f.next.join(" | ")}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
+
+    /**
+     * Breeth builds a knowledge graph from this prose, so whatever is the
+     * grammatical subject becomes the entity it remembers. Writing "Revisit
+     * Day 10 (Retrieval)" taught it facts about the curriculum instead of
+     * facts about the candidate, and the recalled continuity read like a
+     * syllabus. Every line is therefore a sentence about this person, and the
+     * study recommendations are left out entirely: they describe the course,
+     * not the human, and the next interview only needs to know what they could
+     * and could not do.
+     */
+    const sentences: string[] = [
+      `${name} (${candidateId}) was interviewed by Viva on ${state.startedAt.slice(0, 10)}.`,
+      `${name}: ${f.summary}`,
+    ];
+    // A fixed frame around the model's own wording, so the sentence stays
+    // grammatical no matter how the report phrased the item.
+    for (const s of f.strengths) {
+      sentences.push(`${name} showed a strength: ${s}`);
+    }
+    for (const g of f.gaps) {
+      sentences.push(`${name} showed a gap: ${g}`);
+    }
+
+    // The strongest evidence is the candidate's own words, attributed to them.
+    for (const turn of (state.turns ?? []).slice(0, 12)) {
+      if (turn.eval && turn.eval.score <= 0.3 && turn.eval.evidence) {
+        sentences.push(
+          `On Day ${turn.day}, ${name} answered "${turn.eval.evidence}" which was judged ${turn.eval.classification}.`,
+        );
+      }
+    }
+
+    const content = sentences.join("\n");
     // wait_seconds blocks until Breeth's extraction pipeline has landed the
     // facts (verified 8 Aug 2026: async-mode writes can lag indefinitely,
     // blocking writes are searchable within seconds). We run inside after(),
@@ -102,15 +126,20 @@ export async function writeInterviewMemory(state: SessionState): Promise<void> {
  */
 export async function recallCandidateMemories(
   candidateId: string | undefined,
+  candidateName?: string,
 ): Promise<string[]> {
   if (!breethEnabled() || !candidateId) return [];
   try {
+    const who = candidateName ?? candidateId;
     const res = await breethFetch(
       "/search",
       {
-        query: "previous interview: gaps, weaknesses, strengths, recommendations",
+        // Ask about the person, not the syllabus. A query about
+        // "recommendations" pulls back curriculum facts, because the study
+        // steps name curriculum days rather than the candidate.
+        query: `What did ${who} get right and wrong in their previous interview? Their strengths, gaps and answers.`,
         group_id: groupId(candidateId),
-        limit: 8,
+        limit: 12,
       },
       RECALL_TIMEOUT_MS,
     );
@@ -122,10 +151,20 @@ export async function recallCandidateMemories(
     const facts = (data.edges ?? [])
       .map((e) => e.fact?.trim())
       .filter((f): f is string => Boolean(f))
-      // Breeth's graph also yields thin structural edges ("Curriculum day 10").
-      // Only carry forward facts that actually assert something about the
-      // candidate, or the continuity line reads like debug output.
+      // Breeth's graph also yields thin structural edges ("Curriculum day 10")
+      // and syllabus facts ("Day 10 covers cosine similarity"). Neither is
+      // about this person, and a continuity line built from them reads like a
+      // course outline. Keep only substantial facts, and prefer the ones that
+      // name the candidate.
       .filter((f) => f.length >= 28 && f.split(/\s+/).length >= 5)
+      .filter((f) => !/^Day \d+ (focuses|covers|requires)/i.test(f))
+      .sort((a, b) => {
+        const named = (t: string) =>
+          candidateName && t.toLowerCase().includes(candidateName.toLowerCase())
+            ? 0
+            : 1;
+        return named(a) - named(b);
+      })
       .slice(0, 6);
     if (facts.length > 0) {
       console.log(`[breeth] recalled ${facts.length} memories for ${candidateId}`);
