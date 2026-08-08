@@ -2,7 +2,7 @@ import type { Feedback, SessionState } from "@/lib/types";
 
 /**
  * Breeth long-term memory (TRD §6): cross-session candidate continuity.
- * Feature-flagged and fail-silent by design — if BREETH_ENABLED is not "true",
+ * Feature-flagged and fail-silent by design, if BREETH_ENABLED is not "true",
  * the key is missing/placeholder, or the API errors, every function is a
  * harmless no-op. The product must be whole without it.
  *
@@ -13,9 +13,9 @@ import type { Feedback, SessionState } from "@/lib/types";
  */
 
 const BASE_URL = "https://api.thebreeth.com/v1";
-// Recall sits on the start request's critical path — keep it tight.
+// Recall sits on the start request's critical path, keep it tight.
 // Writes run via after() once the response is sent, and Breeth extracts
-// entities synchronously on write (measured >4s) — give them room.
+// entities synchronously on write (measured >4s), give them room.
 const RECALL_TIMEOUT_MS = 4_000;
 const WRITE_TIMEOUT_MS = 45_000; // must outlast the write's wait_seconds=30
 
@@ -72,7 +72,7 @@ export async function writeInterviewMemory(state: SessionState): Promise<void> {
     // wait_seconds blocks until Breeth's extraction pipeline has landed the
     // facts (verified 8 Aug 2026: async-mode writes can lag indefinitely,
     // blocking writes are searchable within seconds). We run inside after(),
-    // so the judge's response is long gone — blocking here costs nothing.
+    // so the judge's response is long gone, blocking here costs nothing.
     const res = await breethFetch(
       "/episodes?wait_seconds=30",
       {
@@ -95,7 +95,7 @@ export async function writeInterviewMemory(state: SessionState): Promise<void> {
 
 /**
  * On interview start: recall what previous sessions surfaced, as short facts.
- * Returns [] on any failure — the planner treats absence as "first interview".
+ * Returns [] on any failure, the planner treats absence as "first interview".
  */
 export async function recallCandidateMemories(
   candidateId: string | undefined,
@@ -119,7 +119,11 @@ export async function recallCandidateMemories(
     const facts = (data.edges ?? [])
       .map((e) => e.fact?.trim())
       .filter((f): f is string => Boolean(f))
-      .slice(0, 8);
+      // Breeth's graph also yields thin structural edges ("Curriculum day 10").
+      // Only carry forward facts that actually assert something about the
+      // candidate, or the continuity line reads like debug output.
+      .filter((f) => f.length >= 28 && f.split(/\s+/).length >= 5)
+      .slice(0, 6);
     if (facts.length > 0) {
       console.log(`[breeth] recalled ${facts.length} memories for ${candidateId}`);
     }

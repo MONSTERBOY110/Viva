@@ -9,7 +9,7 @@ import { dayTitle } from "./questions";
 const modules = curriculum.modules as CurriculumModule[];
 
 export type ReportResult = {
-  /** Contract-shaped feedback (technical-spec.md) — exactly these four fields. */
+  /** Contract-shaped feedback (technical-spec.md), exactly these four fields. */
   feedback: Feedback;
   /** Internal: powers the evidence-linked report UI. Stored, never in the contract. */
   evidenceMap: FeedbackOutput["evidenceMap"];
@@ -18,7 +18,7 @@ export type ReportResult = {
 /**
  * Final report (TRD §5.3): one LLM call over the whole transcript, validated
  * against the contract shape, with a deterministic evidence-based fallback so
- * the judge always receives real feedback — even with the LLM chain down.
+ * the judge always receives real feedback, even with the LLM chain down.
  */
 export async function generateReport(state: SessionState): Promise<ReportResult> {
   try {
@@ -50,10 +50,10 @@ function deterministicReport(state: SessionState): ReportResult {
   const weakTurns = turns.filter((t) => (t.eval!.score ?? 0) < 0.4);
 
   const strengths = strongTurns.slice(0, 4).map(
-    (t) => `Solid on ${moduleForDay(t.day, modules)} (Day ${t.day}) — "${t.eval!.evidence}"`,
+    (t) => `Solid on ${moduleForDay(t.day, modules)} (Day ${t.day}), "${t.eval!.evidence}"`,
   );
   const gaps = weakTurns.slice(0, 4).map(
-    (t) => `Shaky on ${dayTitle(t.day)} (Day ${t.day}) — "${t.eval!.evidence}"`,
+    (t) => `Shaky on ${dayTitle(t.day)} (Day ${t.day}), "${t.eval!.evidence}"`,
   );
   const next = [...new Set(weakTurns.map((t) => t.day))]
     .slice(0, 4)
@@ -79,7 +79,7 @@ function deterministicReport(state: SessionState): ReportResult {
       summary: `${name} answered ${turns.length} scored questions across ${new Set(turns.map((t) => t.day)).size} curriculum days: ${strongTurns.length} strong, ${weakTurns.length} weak. The detail below links every point to their own answers.`,
       strengths: strengths.length > 0 ? strengths : ["Completed the full interview loop with consistent engagement"],
       gaps: gaps.length > 0 ? gaps : ["No major gaps surfaced in this session"],
-      next: next.length > 0 ? next : ["Re-attempt the capstone-adjacent missions (Days 21–24) at a harder difficulty"],
+      next: next.length > 0 ? next : ["Re-attempt the capstone-adjacent missions (Days 21-24) at a harder difficulty"],
     },
     evidenceMap,
   };

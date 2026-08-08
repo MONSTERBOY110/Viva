@@ -29,7 +29,7 @@ const state: SessionState = {
         "Could not explain MCP client-server architecture",
         "Unclear on HNSW/ANN index mechanics",
       ],
-      next: ["Revisit Day 23 (MCP) — build a small MCP server hands-on"],
+      next: ["Revisit Day 23 (MCP), build a small MCP server hands-on"],
     },
   },
 };

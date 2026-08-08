@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       session = await startSession(sessionId, {});
       await store.set(sessionId, session);
       return NextResponse.json({
-        reply: `Apologies — I don't have our earlier thread on file, so let's restart cleanly. ${session.turns![0].q}`,
+        reply: `Apologies, I don't have our earlier thread on file, so let's restart cleanly. ${session.turns![0].q}`,
         done: false,
       });
     }
@@ -75,13 +75,13 @@ export async function POST(req: Request) {
     if (session.phase === "done" && session.report) {
       return NextResponse.json({
         reply:
-          "This interview has already concluded — thank you again for your time. Start a new session if you'd like another round.",
+          "This interview has already concluded, thank you again for your time. Start a new session if you'd like another round.",
         done: true,
         feedback: session.report.feedback,
       });
     }
 
-    // Regular turn: evaluate the answer, decide, ask — or wrap with the report.
+    // Regular turn: evaluate the answer, decide, ask, or wrap with the report.
     const result = await runTurn(session, coerceMessage(message));
 
     if (result.wrap) {
@@ -102,10 +102,10 @@ export async function POST(req: Request) {
     await store.set(sessionId, result.state);
     return NextResponse.json({ reply: result.reply, done: false });
   } catch {
-    // Absolute backstop — a judge must never see a 5xx (CLAUDE.md rule 5).
+    // Absolute backstop, a judge must never see a 5xx (CLAUDE.md rule 5).
     return NextResponse.json({
       reply:
-        "Give me a moment to gather my notes — could you repeat or expand your last answer?",
+        "Give me a moment to gather my notes, could you repeat or expand your last answer?",
       done: false,
     });
   }
@@ -151,10 +151,10 @@ function openingReply(state: SessionState): string {
     .replace(/[.!]+$/, "");
   const continuity =
     (state.priorMemories ?? []).length > 0
-      ? " I also remember our previous conversation — I'll be checking how far you've come since."
+      ? " I also remember our previous conversation, I'll be checking how far you've come since."
       : "";
   return (
-    `${greeting} — I'm Viva, your technical interviewer. I've been through your 31-day journey, ` +
+    `${greeting}, I'm Viva, your technical interviewer. I've been through your 31-day journey, ` +
     `and I've planned our conversation around it.${continuity} We'll start where it matters most: ${reason}.` +
     `\n\n${state.turns![0].q}`
   );

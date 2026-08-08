@@ -8,7 +8,7 @@ import { isFirstTryStrongSignals, pickTopics, type CurriculumModule } from "./po
 /**
  * Planner (TRD §5.1): deterministic topic selection in policy.ts, then one
  * best-effort LLM call to write personaNotes + vivid reasonDetail lines.
- * The plan is fully functional without the LLM — prose just gets plainer.
+ * The plan is fully functional without the LLM, prose just gets plainer.
  */
 export async function buildPlan(
   candidate: Candidate,
@@ -37,7 +37,7 @@ export async function buildPlan(
         }
       }
     } catch {
-      // Deterministic plan stands on its own — never block the interview on polish.
+      // Deterministic plan stands on its own, never block the interview on polish.
     }
   }
 
@@ -52,6 +52,6 @@ function defaultPersonaNotes(candidate: Candidate): string {
     ? `${role}${typeof years === "number" ? ` with ${years}y experience` : ""}`
     : "candidate with an unspecified background";
   return strong
-    ? `${who} — respect the experience, verify depth, escalate quickly on strong answers`
-    : `${who} — encouraging tone, probe fundamentals gently, credit progress`;
+    ? `${who}, respect the experience, verify depth, escalate quickly on strong answers`
+    : `${who}, encouraging tone, probe fundamentals gently, credit progress`;
 }

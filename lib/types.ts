@@ -1,9 +1,9 @@
 /**
  * Shared types. The judge-facing contract shapes (docs/technical-spec.md, TRD §3)
- * are sacred — request/response fields here must never change shape.
+ * are sacred, request/response fields here must never change shape.
  */
 
-/** One mission row from candidates.json — all fields optional; judges may paste custom candidates. */
+/** One mission row from candidates.json, all fields optional; judges may paste custom candidates. */
 export type CandidateMission = {
   day?: number;
   title?: string;
@@ -12,7 +12,7 @@ export type CandidateMission = {
   skipped?: boolean;
 };
 
-/** Candidate object as sent on the start request. Passed through loosely — never crash on extra/missing fields. */
+/** Candidate object as sent on the start request. Passed through loosely, never crash on extra/missing fields. */
 export type Candidate = {
   member?: {
     id?: string;
@@ -31,7 +31,7 @@ export type Candidate = {
   [key: string]: unknown;
 };
 
-/** Contract feedback object — field names and types fixed by technical-spec.md. */
+/** Contract feedback object, field names and types fixed by technical-spec.md. */
 export type Feedback = {
   summary: string;
   strengths: string[];
@@ -60,9 +60,9 @@ export type PlannedTopic = {
 
 export type InterviewPlan = {
   candidateId: string;
-  /** 5–6 topics spanning ≥4 distinct curriculum days. */
+  /** 5-6 topics spanning ≥4 distinct curriculum days. */
   topics: PlannedTopic[];
-  /** e.g. "senior DevOps — respect experience, push depth" */
+  /** e.g. "senior DevOps, respect experience, push depth" */
   personaNotes: string;
 };
 
@@ -74,7 +74,7 @@ export type AnswerClassification =
   | "dont-know";
 
 export type TurnEval = {
-  /** 0–1 */
+  /** 0-1 */
   score: number;
   classification: AnswerClassification;
   /** Short quote from the answer backing the classification. */
@@ -119,7 +119,7 @@ export type SessionState = {
   turns?: Turn[];
   /** Distinct curriculum days already touched. */
   coverage?: number[];
-  /** module title → 0–1 confidence. */
+  /** module title → 0-1 confidence. */
   confidence?: Record<string, number>;
   /** Final report, stored on wrap for idempotent end responses + report UI. */
   report?: { feedback: Feedback; evidenceMap?: EvidenceItem[] };

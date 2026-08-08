@@ -38,7 +38,7 @@ async function probe(budget: number | undefined, label: string) {
       },
     });
     const parsed = JSON.parse(r.text ?? "{}");
-    console.log(`${label}: OK in ${Date.now() - t0}ms — reply: ${(parsed.reply ?? "").slice(0, 80)}`);
+    console.log(`${label}: OK in ${Date.now() - t0}ms, reply: ${(parsed.reply ?? "").slice(0, 80)}`);
   } catch (e) {
     console.log(`${label}: FAIL -> ${String(e).slice(0, 250)}`);
   }

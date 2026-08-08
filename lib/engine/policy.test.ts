@@ -75,7 +75,7 @@ describe("pickTopics", () => {
       t.reasonDetail.startsWith("did not pass"),
     );
     expect(failedPicks.length).toBe(2);
-    // Day 8 failed after 4 attempts — the single highest-signal gap
+    // Day 8 failed after 4 attempts, the single highest-signal gap
     expect(failedPicks[0].day).toBe(8);
     expect(failedPicks[0].startDifficulty).toBe(1);
   });

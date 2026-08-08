@@ -10,7 +10,7 @@ import { runTurn } from "./turn";
 /**
  * Full offline interview simulation: with no GEMINI_API_KEY the engine runs
  * its deterministic fallback end to end. This proves the LLM is an
- * enhancement, not a dependency — the contract minimums hold even with the
+ * enhancement, not a dependency, the contract minimums hold even with the
  * model chain completely down.
  */
 

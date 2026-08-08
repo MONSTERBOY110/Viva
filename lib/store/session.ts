@@ -3,7 +3,7 @@ import type { SessionState } from "@/lib/types";
 
 /**
  * Session persistence boundary (TRD §6). The judge's multi-turn test is keyed
- * by sessionId, so state must survive across requests — including across
+ * by sessionId, so state must survive across requests, including across
  * serverless instances, which is why production uses Upstash Redis.
  * Falls back to an in-memory Map when Redis env vars are absent (local dev),
  * so the app is always runnable.
@@ -58,7 +58,7 @@ class RedisSessionStore implements SessionStore {
 }
 
 // The Vercel Marketplace integration injects UPSTASH_*; older Vercel KV
-// setups inject KV_REST_API_* — accept either so provisioning can't miss.
+// setups inject KV_REST_API_*, accept either so provisioning can't miss.
 // Unfilled .env.example placeholders ("your-...") must not count as configured,
 // or local dev silently points the store at a non-existent host.
 function redisCredentials(): { url: string; token: string } | null {
@@ -69,7 +69,7 @@ function redisCredentials(): { url: string; token: string } | null {
   return { url, token };
 }
 
-/** Which backend the store is using — surfaced on /api/health for ops sanity. */
+/** Which backend the store is using, surfaced on /api/health for ops sanity. */
 export function sessionStoreKind(): "redis" | "memory" {
   return redisCredentials() ? "redis" : "memory";
 }

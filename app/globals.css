@@ -1,26 +1,232 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ---------------------------------------------------------------------------
+   Viva: the examiner's desk at 9pm.
+   Green ink drying on answer scripts, a brass lamp, everything else in shadow.
+   The page is the shadow; the paper is the TEXT, not the background.
+   See DESIGN.md. OKLCH only, never hex.
+--------------------------------------------------------------------------- */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Architecture: pure neutral, no hue tint, ever. */
+  --ground: oklch(0.085 0 0);
+  --panel: oklch(0.125 0 0);
+  --raised: oklch(0.165 0 0);
+  --rule: oklch(0.265 0 0);
+  --rule-soft: oklch(0.19 0 0);
+
+  /* Paper: the warmth lives here, in the ink, not in the ground. */
+  --ink: oklch(0.94 0.01 85); /* 15.4:1 on ground */
+  --dim: oklch(0.645 0.008 85); /* 6.6:1, secondary text and placeholders */
+  --faint: oklch(0.46 0.006 85); /* decorative and disabled only */
+
+  /* The examiner's green ink: strength, coverage, active, focus. */
+  --quill: oklch(0.66 0.142 150); /* 7.0:1 */
+  --quill-bright: oklch(0.87 0.14 150); /* filled CTA, carries --ground at 12.9:1 */
+  --quill-dim: oklch(0.4 0.075 150);
+
+  /* The brass lamp: attention, current probe, gaps, policy overrides. */
+  --lamp: oklch(0.86 0.112 76); /* 12.4:1 */
+  --lamp-dim: oklch(0.52 0.07 76);
+
+  /* Semantic z-scale, never arbitrary values. */
+  --z-sticky: 10;
+  --z-sheet: 40;
+  --z-overlay: 50;
+  --z-tooltip: 60;
+
+  /* shadcn/ui token surface, mapped onto the palette above so its
+     components inherit this system instead of their own greys. */
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--panel);
+  --card-foreground: var(--ink);
+  --popover: var(--panel);
+  --popover-foreground: var(--ink);
+  --primary: var(--quill-bright);
+  --primary-foreground: var(--ground);
+  --secondary: var(--raised);
+  --secondary-foreground: var(--ink);
+  --muted: var(--raised);
+  --muted-foreground: var(--dim);
+  --accent: var(--raised);
+  --accent-foreground: var(--ink);
+  --destructive: oklch(0.68 0.16 32);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--quill);
+  --radius: 2px; /* paper and rules, not pills */
 }
 
 @theme inline {
+  --color-ground: var(--ground);
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-rule: var(--rule);
+  --color-rule-soft: var(--rule-soft);
+  --color-ink: var(--ink);
+  --color-dim: var(--dim);
+  --color-faint: var(--faint);
+  --color-quill: var(--quill);
+  --color-quill-bright: var(--quill-bright);
+  --color-quill-dim: var(--quill-dim);
+  --color-lamp: var(--lamp);
+  --color-lamp-dim: var(--lamp-dim);
+
+  --font-voice: var(--font-newsreader);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+  --font-heading: var(--font-newsreader);
+
+  /* Fixed rem scale, ratio about 1.2 (product register, no fluid type in app). */
+  --text-data: 0.75rem;
+  --text-data--line-height: 1.4;
+  --text-data--letter-spacing: 0.02em;
+  --text-ui-sm: 0.8125rem;
+  --text-ui-sm--line-height: 1.45;
+  --text-ui: 0.875rem;
+  --text-ui--line-height: 1.5;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+  --text-voice: 1.25rem;
+  --text-voice--line-height: 1.65;
+  --text-voice-lg: 1.5rem;
+  --text-voice-lg--line-height: 1.55;
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.02em;
+
+  /* shadcn token bridge */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-xl: 4px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply font-sans;
+    background: var(--ground);
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-size: var(--text-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Focus is never removed: 2px quill ring, 2px offset. */
+  :focus-visible {
+    outline: 2px solid var(--quill);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: var(--quill-dim);
+    color: var(--ink);
+  }
+
+  ::placeholder {
+    color: var(--dim); /* 6.6:1, placeholders are text too */
+  }
+
+  .font-mono,
+  [class*="font-mono"] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* The interviewer speaking: page prose, no bubble, no avatar. */
+  .voice {
+    font-family: var(--font-voice);
+    font-optical-sizing: auto;
+    font-size: var(--text-voice);
+    line-height: 1.65;
+    letter-spacing: 0;
+    color: var(--ink);
+    max-width: 62ch;
+  }
+
+  @media (min-width: 1024px) {
+    .voice {
+      font-size: var(--text-voice-lg);
+      line-height: 1.55;
+    }
+  }
+
+  /* Genuine field labels for data. Never a section eyebrow. */
+  .field-label {
+    font-size: var(--text-data);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dim);
+    font-weight: 500;
+  }
+}
+
+/* Reduced motion is a first class path: entrances complete instantly,
+   nothing is hidden behind a transition. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  html,
+  body {
+    background: #fff;
+    color: #111;
+  }
+
+  .no-print {
+    display: none !important;
+  }
 }

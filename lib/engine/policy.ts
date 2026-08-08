@@ -10,7 +10,7 @@ import type {
 
 /**
  * The deterministic brain-stem (TRD §5.1 topic selection, §5.2 guardrails).
- * Pure TypeScript, no LLM calls, fully unit-testable — the LLM proposes,
+ * Pure TypeScript, no LLM calls, fully unit-testable, the LLM proposes,
  * policy disposes. Every override is returned as a human-readable note so the
  * Interviewer Brain panel can show "policy override: …" transparently.
  */
@@ -49,7 +49,7 @@ export function moduleForDay(day: number, modules: CurriculumModule[]): string {
 }
 
 // ---------------------------------------------------------------------------
-// Topic selection (runs once, on the start request — TRD §5.1)
+// Topic selection (runs once, on the start request, TRD §5.1)
 // ---------------------------------------------------------------------------
 
 const STRUGGLE_ATTEMPTS = 3; // ≥3 attempts reads as struggle
@@ -70,7 +70,7 @@ function validMissions(candidate: Candidate): CandidateMission[] {
 }
 
 /**
- * Deterministically choose 5–6 interview topics spanning ≥4 distinct days.
+ * Deterministically choose 5-6 interview topics spanning ≥4 distinct days.
  * Priority: failed > struggled (attempts desc) > skipped > verify-strength > core fill.
  * Tolerates any candidate shape, including judge-pasted customs with no missions.
  */
@@ -89,7 +89,7 @@ export function pickTopics(
     topics.push(t);
   };
 
-  // 1. Outright failures — the highest-signal gaps.
+  // 1. Outright failures, the highest-signal gaps.
   const failed = missions
     .filter((m) => m.passed === false)
     .sort((a, b) => (b.attempts ?? 0) - (a.attempts ?? 0));
@@ -117,7 +117,7 @@ export function pickTopics(
     });
   }
 
-  // 3. Skipped topics — gentle probes; skipping may hide a real gap.
+  // 3. Skipped topics, gentle probes; skipping may hide a real gap.
   const skipped = missions.filter((m) => m.skipped === true);
   for (const m of skipped.slice(0, 2)) {
     add({
@@ -140,7 +140,7 @@ export function pickTopics(
         day: pick.day!,
         module: moduleForDay(pick.day!, modules),
         reason: "verify-strength",
-        reasonDetail: `first-try pass on Day ${pick.day} (${pick.title ?? "mission"}) — verify it's real depth`,
+        reasonDetail: `first-try pass on Day ${pick.day} (${pick.title ?? "mission"}), verify it's real depth`,
         startDifficulty: 3,
       });
     }
@@ -153,7 +153,7 @@ export function pickTopics(
       day: core.day,
       module: moduleForDay(core.day, modules),
       reason: "core",
-      reasonDetail: `${core.title} — cohort spine topic`,
+      reasonDetail: `${core.title}, cohort spine topic`,
       startDifficulty: strong ? 2 : 1,
     });
   }
@@ -162,10 +162,10 @@ export function pickTopics(
 }
 
 // ---------------------------------------------------------------------------
-// Per-turn guardrails (TRD §5.2) — applied ON TOP of the LLM's decision
+// Per-turn guardrails (TRD §5.2), applied ON TOP of the LLM's decision
 // ---------------------------------------------------------------------------
 
-/** Raw LLM proposal — difficulty arrives as a plain number and gets clamped. */
+/** Raw LLM proposal, difficulty arrives as a plain number and gets clamped. */
 export type TurnDecision = {
   action: TurnAction;
   nextDay: number;
@@ -214,29 +214,29 @@ export function applyGuardrails(
 
   if (!Number.isInteger(nextDay) || nextDay < 1 || nextDay > 31) {
     nextDay = pickUncoveredDay(state);
-    forced.push(`invalid day proposed — redirected to Day ${nextDay}`);
+    forced.push(`invalid day proposed, redirected to Day ${nextDay}`);
   }
 
   const lastEval = turns.at(-1)?.eval;
 
-  // Rule: hard cap — no question 15, ever.
+  // Rule: hard cap, no question 15, ever.
   if (asked >= HARD_CAP) {
-    if (action !== "wrap") forced.push(`hard cap ${HARD_CAP} reached — wrapping`);
+    if (action !== "wrap") forced.push(`hard cap ${HARD_CAP} reached, wrapping`);
     return { action: "wrap", nextDay, nextDifficulty, forced };
   }
 
   // Rule: don't let the interview run past the wrap window...
   if (asked >= FORCE_WRAP_AT && action !== "wrap") {
-    // ...unless the coverage minimum is still unmet — then rescue coverage
+    // ...unless the coverage minimum is still unmet, then rescue coverage
     // with the remaining headroom before the hard cap.
     if (covered.length < MIN_DISTINCT_DAYS) {
       const day = pickUncoveredDay(state);
       forced.push(
-        `${asked} questions asked but only ${covered.length} days covered — forced switch to Day ${day}`,
+        `${asked} questions asked but only ${covered.length} days covered, forced switch to Day ${day}`,
       );
       return { action: "switch", nextDay: day, nextDifficulty: 1, forced };
     }
-    forced.push(`wrap window (${FORCE_WRAP_AT}+) — wrapping`);
+    forced.push(`wrap window (${FORCE_WRAP_AT}+), wrapping`);
     return { action: "wrap", nextDay, nextDifficulty, forced };
   }
 
@@ -244,13 +244,13 @@ export function applyGuardrails(
   if (action === "wrap" && asked < MIN_QUESTIONS) {
     const day = pickUncoveredDay(state);
     forced.push(
-      `only ${asked} questions asked (minimum ${MIN_QUESTIONS}) — continuing on Day ${day}`,
+      `only ${asked} questions asked (minimum ${MIN_QUESTIONS}), continuing on Day ${day}`,
     );
     action = "switch";
     nextDay = day;
   }
 
-  // Rule: coverage floor — from turn 6, force breadth until ≥4 distinct days.
+  // Rule: coverage floor, from turn 6, force breadth until ≥4 distinct days.
   if (
     action !== "wrap" &&
     asked >= COVERAGE_CHECK_FROM &&
@@ -259,7 +259,7 @@ export function applyGuardrails(
   ) {
     const day = pickUncoveredDay(state);
     forced.push(
-      `coverage floor: ${covered.length}/${MIN_DISTINCT_DAYS} days at ${asked} questions — forced switch to Day ${day}`,
+      `coverage floor: ${covered.length}/${MIN_DISTINCT_DAYS} days at ${asked} questions, forced switch to Day ${day}`,
     );
     action = "switch";
     nextDay = day;
@@ -276,7 +276,7 @@ export function applyGuardrails(
   ) {
     const day = pickUncoveredDay(state);
     forced.push(
-      `already 2 consecutive questions on Day ${last.day} — switching to Day ${day}`,
+      `already 2 consecutive questions on Day ${last.day}, switching to Day ${day}`,
     );
     action = "switch";
     nextDay = day;
@@ -287,7 +287,7 @@ export function applyGuardrails(
     if (action === "escalate" || action === "drill") {
       const day = pickUncoveredDay(state);
       forced.push(
-        `candidate said they don't know — moving on kindly to Day ${day} instead of pressing`,
+        `candidate said they don't know, moving on kindly to Day ${day} instead of pressing`,
       );
       action = "switch";
       nextDay = day;
@@ -297,7 +297,7 @@ export function applyGuardrails(
     }
   }
 
-  // Rule: escalation is earned — cap difficulty jumps after weak answers.
+  // Rule: escalation is earned, cap difficulty jumps after weak answers.
   if (
     action !== "wrap" &&
     lastEval &&
@@ -312,7 +312,7 @@ export function applyGuardrails(
 }
 
 // ---------------------------------------------------------------------------
-// Pre-call directives — the same rules, phrased as instructions for the LLM
+// Pre-call directives, the same rules, phrased as instructions for the LLM
 // so its reply text already matches what policy will allow (TRD §5.2).
 // ---------------------------------------------------------------------------
 
@@ -325,36 +325,36 @@ export function computeDirectives(state: SessionState): string[] {
   const prev = turns.at(-2);
 
   if (asked >= FORCE_WRAP_AT) {
-    directives.push("Wrap the interview NOW (action: wrap) — the question budget is spent.");
+    directives.push("Wrap the interview NOW (action: wrap), the question budget is spent.");
     return directives;
   }
   if (asked < MIN_QUESTIONS) {
     directives.push(
-      `Do NOT wrap yet — at least ${MIN_QUESTIONS} questions are required (currently ${asked}).`,
+      `Do NOT wrap yet, at least ${MIN_QUESTIONS} questions are required (currently ${asked}).`,
     );
   } else if (covered.length >= MIN_DISTINCT_DAYS && asked >= WRAP_FROM) {
     directives.push("You may wrap (action: wrap) once the remaining planned topics add nothing new.");
   }
   if (asked >= COVERAGE_CHECK_FROM - 1 && covered.length < MIN_DISTINCT_DAYS) {
     directives.push(
-      `Coverage is ${covered.length}/${MIN_DISTINCT_DAYS} distinct days — switch to an uncovered planned day NOW.`,
+      `Coverage is ${covered.length}/${MIN_DISTINCT_DAYS} distinct days, switch to an uncovered planned day NOW.`,
     );
   }
   if (prev && last && prev.day === last.day) {
     directives.push(
-      `Two consecutive questions were on Day ${last.day} — you MUST move to a different day.`,
+      `Two consecutive questions were on Day ${last.day}, you MUST move to a different day.`,
     );
   }
   if (last?.eval?.classification === "dont-know") {
     directives.push(
-      "The candidate said they don't know — acknowledge kindly, switch topic, drop to difficulty 1. Never press.",
+      "The candidate said they don't know, acknowledge kindly, switch topic, drop to difficulty 1. Never press.",
     );
   }
   return directives;
 }
 
 // ---------------------------------------------------------------------------
-// Confidence tracking (module title → 0–1, exponential moving average)
+// Confidence tracking (module title → 0-1, exponential moving average)
 // ---------------------------------------------------------------------------
 
 export function updateConfidence(

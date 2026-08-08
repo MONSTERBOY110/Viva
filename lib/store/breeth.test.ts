@@ -8,7 +8,7 @@ import {
 
 /**
  * The Breeth integration must be a perfect no-op when disabled or
- * misconfigured — the product is whole without it (TRD §6).
+ * misconfigured, the product is whole without it (TRD §6).
  */
 
 const fakeState: SessionState = {

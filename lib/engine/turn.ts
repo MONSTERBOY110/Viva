@@ -19,7 +19,7 @@ const modules = curriculum.modules as CurriculumModule[];
 export type TurnResult = {
   state: SessionState;
   reply: string;
-  /** True when the interview should wrap — the route generates feedback next. */
+  /** True when the interview should wrap, the route generates feedback next. */
   wrap: boolean;
 };
 
@@ -27,7 +27,7 @@ export type TurnResult = {
  * One interview turn (TRD §5.2): record the answer, evaluate + decide + draft
  * in a single structured LLM call (with policy directives injected), enforce
  * guardrails on the result, and advance the session state. Falls back to a
- * deterministic path when the LLM chain is exhausted — the interview always
+ * deterministic path when the LLM chain is exhausted, the interview always
  * moves forward.
  */
 export async function runTurn(
@@ -76,7 +76,7 @@ export async function runTurn(
     const closing =
       !offline && out.action === "wrap"
         ? out.reply
-        : "That gives me a complete picture — thank you for working through all of it with me. Let me put together your feedback.";
+        : "That gives me a complete picture, thank you for working through all of it with me. Let me put together your feedback.";
     return { state, reply: closing, wrap: true };
   }
 
@@ -113,7 +113,7 @@ function transitionReply(
 ): string {
   const ack =
     out.evaluation.classification === "dont-know"
-      ? "No problem at all — knowing the edges of your knowledge is a skill too."
+      ? "No problem at all, knowing the edges of your knowledge is a skill too."
       : out.evaluation.classification === "strong"
         ? "Good answer."
         : "Alright, noted.";
@@ -141,7 +141,7 @@ function offlineTurnOutput(state: SessionState, message: string): TurnOutput {
     action: asked >= 12 ? "wrap" : "switch",
     nextDay,
     nextDifficulty: 1,
-    rationale: "LLM unavailable — deterministic fallback kept the interview moving",
+    rationale: "LLM unavailable, deterministic fallback kept the interview moving",
     reply: seedQuestion(nextDay),
   };
 }

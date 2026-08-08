@@ -1,14 +1,15 @@
 import { GoogleGenAI } from "@google/genai";
 import * as z from "zod";
+import { scrubStrings } from "@/lib/text";
 
 /**
  * Gemini provider adapter (TRD §5.4): structured JSON mode, zod validation
  * with one repair retry, exponential backoff with jitter, and a model
- * fallback chain. This module may throw only LlmError — routes catch it and
+ * fallback chain. This module may throw only LlmError, routes catch it and
  * answer with a graceful in-character line (never 5xx to a judge).
  *
  * Model names verified against ai.google.dev on 7 Aug 2026:
- * gemini-3.5-flash (stable, free tier) → gemini-3.1-flash-lite (stable, free tier).
+ * gemini-3.5-flash (stable, free tier) then gemini-3.1-flash-lite (stable, free tier).
  */
 
 const PRIMARY_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.5-flash";
@@ -89,7 +90,9 @@ async function callModel<T>(
   ]);
   const text = response.text;
   if (!text) throw new Error(`empty response from ${model}`);
-  return schema.parse(JSON.parse(stripFences(text)));
+  // House punctuation rule enforced at the boundary, so no model slip reaches
+  // a judge even though the prompts already forbid dashes.
+  return schema.parse(scrubStrings(JSON.parse(stripFences(text))));
 }
 
 /**

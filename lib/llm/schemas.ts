@@ -25,7 +25,7 @@ export const TurnOutputSchema = z.object({
     .describe("One sentence for the Interviewer Brain panel: why this move"),
   reply: z
     .string()
-    .describe("What the interviewer says next — references the candidate's words unless the answer was strong"),
+    .describe("What the interviewer says next, references the candidate's words unless the answer was strong"),
 });
 export type TurnOutput = z.infer<typeof TurnOutputSchema>;
 
@@ -33,7 +33,7 @@ export type TurnOutput = z.infer<typeof TurnOutputSchema>;
 export const PlanPolishSchema = z.object({
   personaNotes: z
     .string()
-    .describe('Interviewer stance for this candidate, e.g. "senior DevOps — respect experience, push depth"'),
+    .describe('Interviewer stance for this candidate, e.g. "senior DevOps, respect experience, push depth"'),
   topicDetails: z.array(
     z.object({
       day: z.number().int().min(1).max(31),

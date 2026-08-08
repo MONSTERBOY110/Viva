@@ -14,7 +14,7 @@ export const CANNED_QUESTIONS: { day: number; q: string }[] = [
   },
   {
     day: 8,
-    q: "You worked with vector databases on Day 8 — when is a plain SQL database the wrong tool for retrieval, and what does a vector database do differently under the hood?",
+    q: "You worked with vector databases on Day 8, when is a plain SQL database the wrong tool for retrieval, and what does a vector database do differently under the hood?",
   },
   {
     day: 11,
@@ -22,11 +22,11 @@ export const CANNED_QUESTIONS: { day: number; q: string }[] = [
   },
   {
     day: 12,
-    q: "From your Day 12 prompt engineering work — give me one concrete case where few-shot examples beat a zero-shot instruction, and one case where they'd backfire.",
+    q: "From your Day 12 prompt engineering work, give me one concrete case where few-shot examples beat a zero-shot instruction, and one case where they'd backfire.",
   },
   {
     day: 20,
-    q: "On conversation memory, Day 20: your chat history has grown past the context window. What exactly do you keep, summarize, or drop — and why?",
+    q: "On conversation memory, Day 20: your chat history has grown past the context window. What exactly do you keep, summarize, or drop, and why?",
   },
   {
     day: 22,
@@ -49,9 +49,9 @@ export function cannedWelcome(candidate: Candidate): string {
   const role = candidate?.member?.jobRole?.trim();
   const greeting = name ? `Welcome, ${name}` : "Welcome";
   const journeyLine = role
-    ? ` I've read through your 31-day cohort journey — your background as a ${role} will make this interesting.`
+    ? ` I've read through your 31-day cohort journey, your background as a ${role} will make this interesting.`
     : " I've read through your 31-day cohort journey.";
-  return `${greeting} — I'm Viva, your technical interviewer.${journeyLine} We'll work through ${TOTAL_QUESTIONS} questions across the curriculum; take your time with each answer.`;
+  return `${greeting}, I'm Viva, your technical interviewer.${journeyLine} We'll work through ${TOTAL_QUESTIONS} questions across the curriculum; take your time with each answer.`;
 }
 
 export function cannedFeedback(candidate: Candidate): Feedback {
@@ -63,10 +63,10 @@ export function cannedFeedback(candidate: Candidate): Feedback {
       "Maintained the conversation end to end without losing session context",
     ],
     gaps: [
-      "Answer depth not yet individually scored — adaptive evaluation lands in the next build",
+      "Answer depth not yet individually scored, adaptive evaluation lands in the next build",
     ],
     next: [
-      "Revisit Day 11 (RAG End-to-End) and Day 23 (MCP) — the cohort's spine topics",
+      "Revisit Day 11 (RAG End-to-End) and Day 23 (MCP), the cohort's spine topics",
       "Return for a re-interview once adaptive scoring is live for evidence-linked feedback",
     ],
   };

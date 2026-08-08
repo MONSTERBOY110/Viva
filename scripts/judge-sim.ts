@@ -1,5 +1,5 @@
 /**
- * judge-sim — scripted full-interview contract test against any deployment (TRD §8).
+ * judge-sim, scripted full-interview contract test against any deployment (TRD §8).
  *
  *   npx tsx scripts/judge-sim.ts                      # tests http://localhost:3000
  *   npx tsx scripts/judge-sim.ts https://viva.vercel.app
@@ -21,15 +21,15 @@ const MAX_REQUESTS = 25; // hard stop so a broken loop can't run forever
 const REQUEST_TIMEOUT_MS = 30_000; // a judge would not wait longer either
 
 const SCRIPTED_ANSWERS = [
-  "An embedding is a dense numeric vector that captures the semantic meaning of text, so similar meanings end up close together in vector space — that's why cosine similarity works as a relevance signal.",
+  "An embedding is a dense numeric vector that captures the semantic meaning of text, so similar meanings end up close together in vector space, that's why cosine similarity works as a relevance signal.",
   "I don't know, honestly.",
   "It just matches words together I think.",
-  "That's a great question — there are really many aspects and trade-offs to consider in these situations.",
+  "That's a great question, there are really many aspects and trade-offs to consider in these situations.",
   "You retrieve top-k chunks from the vector store, stuff them into a grounded prompt, and the LLM answers only from that context. Silent failures: bad chunking, stale index, or the model ignoring the context and hallucinating.",
   "Few-shot helps when the output format matters, like extracting structured fields; it backfires when the examples bias the model toward wrong patterns or eat the context budget.",
   "Honestly I'd have to look that one up.",
   "MCP standardizes how models talk to external tools: a server exposes tools, resources, and prompts over a common protocol so any compatible client can use them.",
-  "Prompt injection through user text and data exfiltration via tool calls — guard with input sanitization, least-privilege tools, and output filtering.",
+  "Prompt injection through user text and data exfiltration via tool calls, guard with input sanitization, least-privilege tools, and output filtering.",
   "I'm not sure about that one, could we move on?",
 ];
 
@@ -42,7 +42,7 @@ function check(label: string, ok: boolean, detail?: string) {
     console.log(`  ✓ ${label}`);
   } else {
     failed++;
-    console.error(`  ✗ ${label}${detail ? ` — ${detail}` : ""}`);
+    console.error(`  ✗ ${label}${detail ? `, ${detail}` : ""}`);
   }
 }
 
@@ -140,7 +140,7 @@ async function main() {
 
   check("interview reached done:true", done, `stopped after ${answerIdx} answers`);
   check(
-    `question count within ${MIN_QUESTIONS}–${MAX_QUESTIONS}`,
+    `question count within ${MIN_QUESTIONS}-${MAX_QUESTIONS}`,
     questionsAsked >= MIN_QUESTIONS && questionsAsked <= MAX_QUESTIONS,
     `asked ${questionsAsked}`,
   );
