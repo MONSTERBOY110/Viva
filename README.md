@@ -60,6 +60,24 @@ Every strength and gap in the report opens to reveal **the candidate's verbatim 
 
 ---
 
+## The spoken viva
+
+A *viva voce* is, literally, an examination "by live voice". So Viva conducts one: it asks its questions in a real voice, opens the microphone the moment it stops speaking, and submits your answer when you go quiet. Press nothing, just talk.
+
+**Hands-free mode** is the demo worth watching. The examiner asks, you answer aloud, it evaluates and asks the next question, and the Interviewer Mind panel updates beside it the whole time.
+
+How it is built:
+
+- **Streaming, not synthesise-then-send.** `POST /api/voice` registers a line and returns a short id; `GET /api/voice/[id]` pipes the ElevenLabs stream straight through to an `<audio>` element. The browser plays audio/mpeg progressively, so speech starts before generation has finished. Measured through the proxy on a warm connection: **about 0.6s to first audio**, roughly 0.1s over talking to ElevenLabs directly. The id lives in Redis with a 15 minute TTL, because on serverless the register and the stream can land on different instances.
+- **The key never reaches the browser.** Only opaque ids cross the wire, and a requested voice id is pattern checked before it is ever forwarded upstream.
+- **The microphone never fights the speaker.** Listening starts only after playback resolves, otherwise the recogniser transcribes the examiner's own question into the answer.
+- **Auto-submit is visible, not sprung on you.** After you stop talking the button reads "sending when you stop", and typing a single character cancels the countdown.
+- **The candidate's half is free.** Answering uses the browser's own speech recognition, so credits are spent only on the voice that matters, and it is hidden where unsupported.
+
+It is still entirely optional. The problem statement scopes voice out, so the controls are hidden when no key is configured, every failure path (bad key, spent quota, rate limit, autoplay block) falls back to silence, and none of it touches the contract endpoint. The graded product is complete and unchanged without it.
+
+Set `ELEVENLABS_API_KEY` and it turns itself on. The voice picker is populated from your own account at runtime.
+
 ## How it works
 
 ```mermaid
@@ -162,6 +180,7 @@ npx tsx scripts/judge-sim.ts https://viva-bay.vercel.app   # or vs production
 | Layer | Choice | Why |
 |---|---|---|
 | Framework | Next.js 15, App Router, TypeScript | One repo and one deploy for UI and API |
+| Voice (optional) | ElevenLabs Flash v2.5, browser speech recognition | The examiner speaks, the candidate answers aloud, both feature flagged |
 | Model | Gemini 3.5 Flash, falling back to 3.1 Flash Lite | Free tier, structured JSON output, about 2s per turn |
 | Session state | Upstash Redis, 48h TTL | Serverless functions are stateless, and the judge's multi turn test must stay coherent |
 | Long term memory | Breeth (sponsor), feature flagged | Cross session candidate continuity, behind an interface and fail silent |
@@ -192,6 +211,8 @@ app/
   api-docs/                   live contract playground
   api/interview/route.ts      THE CONTRACT ENDPOINT
   api/session/[id]/route.ts   read model for the Mind panel
+  api/voice/route.ts          spoken examiner: capability and registration
+  api/voice/[id]/route.ts     streams the audio, silent on any failure
   api/health/route.ts
 lib/
   engine/policy.ts            pure TypeScript brain stem, unit tested

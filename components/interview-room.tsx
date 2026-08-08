@@ -6,6 +6,7 @@ import { journeyOf, dayTitleFor } from "@/lib/journey";
 import type { Candidate, Feedback } from "@/lib/types";
 import { MindPanel, type SessionView } from "@/components/mind-panel";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useDictation, useExaminerVoice } from "@/components/use-voice";
 import { cn } from "@/lib/utils";
 
 type Exchange = {
@@ -33,6 +34,19 @@ export function InterviewRoom({
   const started = useRef(false);
   const liveRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+
+  /** Hands-free: the examiner asks aloud, the microphone opens, you answer. */
+  const [vivaMode, setVivaMode] = useState(false);
+  const sendRef = useRef<() => void>(() => {});
+
+  const voice = useExaminerVoice();
+  const dictation = useDictation({
+    onChunk: (chunk) =>
+      setDraft((prev) => (prev ? `${prev.trim()} ${chunk}` : chunk)),
+    // In hands-free mode, going quiet is how you finish an answer.
+    onSilence: vivaMode ? () => sendRef.current() : undefined,
+    silenceMs: 3000,
+  });
 
   const marks = candidate ? journeyOf(candidate) : [];
 
@@ -82,10 +96,12 @@ export function InterviewRoom({
     })();
   }, [sessionId, candidate, refreshMind]);
 
+  const stopDictation = dictation.stop;
   const send = useCallback(async () => {
     const message = draft.trim();
     if (!message || thinking || done) return;
 
+    stopDictation();
     setExchanges((prev) => [...prev, { role: "candidate", text: message }]);
     setDraft("");
     setThinking(true);
@@ -109,7 +125,46 @@ export function InterviewRoom({
       setThinking(false);
       refreshMind();
     }
-  }, [draft, thinking, done, sessionId, refreshMind]);
+  }, [draft, thinking, done, sessionId, refreshMind, stopDictation]);
+
+  sendRef.current = send;
+
+  // Speak each new question once, then in hands-free mode open the microphone
+  // the moment the examiner stops talking. This lives in an effect rather than
+  // beside the fetch because voice availability resolves asynchronously, so
+  // the opening question would otherwise be missed on a fresh load.
+  const spokenRef = useRef<string | null>(null);
+  const { speak, enabled: voiceOn, available: voiceAvailable } = voice;
+  const startDictation = dictation.start;
+  const dictationSupported = dictation.supported;
+
+  useEffect(() => {
+    if (!voiceAvailable || !voiceOn) return;
+    const latest = exchanges.at(-1);
+    if (!latest || latest.role !== "interviewer") return;
+    if (spokenRef.current === latest.text) return;
+    spokenRef.current = latest.text;
+
+    let cancelled = false;
+    (async () => {
+      await speak(latest.text);
+      // Never listen while the examiner is still speaking, or the microphone
+      // transcribes the question back into the answer.
+      if (cancelled || !vivaMode || !dictationSupported) return;
+      if (latest.text === spokenRef.current) startDictation();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    exchanges,
+    voiceOn,
+    voiceAvailable,
+    speak,
+    vivaMode,
+    dictationSupported,
+    startDictation,
+  ]);
 
   // Keep the newest exchange in view without yanking the page mid read.
   useEffect(() => {
@@ -142,9 +197,81 @@ export function InterviewRoom({
             {role && <span className="text-faint"> · {role}</span>}
           </span>
         </div>
-        <span className="font-mono text-data text-faint">
-          session {sessionId.slice(0, 8)}
-        </span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {voice.available && (
+            <>
+              <button
+                type="button"
+                onClick={() => voice.setEnabled(!voice.enabled)}
+                aria-pressed={voice.enabled}
+                className={cn(
+                  "-my-2 flex items-center gap-2 py-2 font-mono text-data transition-colors",
+                  voice.enabled ? "text-quill" : "text-dim hover:text-ink",
+                )}
+              >
+                <SpeakerIcon on={voice.enabled} speaking={voice.speaking} />
+                {voice.speaking ? "speaking" : voice.enabled ? "read aloud" : "silent"}
+              </button>
+
+              {voice.enabled && voice.voices.length > 1 && (
+                <label className="flex items-center gap-1.5">
+                  <span className="sr-only">Examiner voice</span>
+                  <select
+                    value={voice.voiceId ?? ""}
+                    onChange={(e) => voice.setVoice(e.target.value)}
+                    className="-my-1 border border-rule bg-panel px-2 py-1 font-mono text-data text-dim outline-none transition-colors hover:text-ink focus-visible:border-quill"
+                  >
+                    {voice.voices.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              {voice.enabled && dictation.supported && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !vivaMode;
+                    setVivaMode(next);
+                    if (!next) dictation.cancel();
+                  }}
+                  aria-pressed={vivaMode}
+                  className={cn(
+                    "-my-2 py-2 font-mono text-data transition-colors",
+                    vivaMode ? "text-lamp" : "text-dim hover:text-ink",
+                  )}
+                >
+                  {vivaMode ? "hands free on" : "hands free"}
+                </button>
+              )}
+
+              {voice.speaking && (
+                <button
+                  type="button"
+                  onClick={voice.stop}
+                  className="-my-2 py-2 font-mono text-data text-dim underline decoration-rule underline-offset-4 hover:text-ink"
+                >
+                  skip
+                </button>
+              )}
+            </>
+          )}
+          {voice.blocked && (
+            <button
+              type="button"
+              onClick={voice.replay}
+              className="-my-2 py-2 font-mono text-data text-lamp underline decoration-lamp-dim underline-offset-4"
+            >
+              tap to hear
+            </button>
+          )}
+          <span className="font-mono text-data text-faint">
+            session {sessionId.slice(0, 8)}
+          </span>
+        </div>
       </header>
 
       <div className="grid gap-10 py-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12">
@@ -199,7 +326,12 @@ export function InterviewRoom({
                 id="answer"
                 ref={composerRef}
                 value={draft}
-                onChange={(e) => setDraft(e.target.value)}
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  // Typing means the candidate is still composing, so never
+                  // let the hands-free countdown submit underneath them.
+                  dictation.clearTimer();
+                }}
                 onKeyDown={(e) => {
                   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
                     e.preventDefault();
@@ -211,10 +343,35 @@ export function InterviewRoom({
                 placeholder="Answer in your own words. Say so plainly if you do not know."
                 className="mt-2 w-full resize-y border border-rule bg-raised p-3.5 text-body text-ink outline-none transition-colors focus-visible:border-quill disabled:opacity-60"
               />
-              <div className="mt-3 flex items-center justify-between gap-4">
-                <span className="font-mono text-data text-faint">
-                  Ctrl or Cmd plus Enter to send
-                </span>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-4">
+                  {dictation.supported && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        dictation.listening ? dictation.stop() : dictation.start()
+                      }
+                      aria-pressed={dictation.listening}
+                      disabled={thinking}
+                      className={cn(
+                        "flex min-h-11 items-center gap-2 border px-3 font-mono text-data transition-colors disabled:opacity-40",
+                        dictation.listening
+                          ? "border-quill text-quill"
+                          : "border-rule text-dim hover:border-quill hover:text-ink",
+                      )}
+                    >
+                      <MicIcon listening={dictation.listening} />
+                      {dictation.silencePending
+                        ? "sending when you stop"
+                        : dictation.listening
+                          ? "listening, tap to stop"
+                          : "answer aloud"}
+                    </button>
+                  )}
+                  <span className="font-mono text-data text-faint">
+                    Ctrl or Cmd plus Enter to send
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={send}
@@ -239,6 +396,72 @@ export function InterviewRoom({
       {/* Mobile: a persistent summary bar that opens the full panel */}
       <MobileMind view={view} marks={marks} thinking={thinking} />
     </div>
+  );
+}
+
+/* Icons are drawn inline rather than pulled from a set, so their stroke
+   weight matches the hairline rules used everywhere else. */
+
+function SpeakerIcon({ on, speaking }: { on: boolean; speaking: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M3 6.2h2.2L8.4 3.4v9.2L5.2 9.8H3z"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+      {on && (
+        <>
+          <path
+            d="M10.8 6.1a2.7 2.7 0 0 1 0 3.8"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            className={speaking ? "animate-pulse" : undefined}
+          />
+          <path
+            d="M12.6 4.3a5.2 5.2 0 0 1 0 7.4"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            opacity={speaking ? 1 : 0.45}
+            className={speaking ? "animate-pulse" : undefined}
+          />
+        </>
+      )}
+      {!on && (
+        <path
+          d="M11 6l3.4 4M14.4 6L11 10"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+      )}
+    </svg>
+  );
+}
+
+function MicIcon({ listening }: { listening: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect
+        x="6"
+        y="2"
+        width="4"
+        height="7"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        fill={listening ? "currentColor" : "none"}
+      />
+      <path
+        d="M3.8 7.6a4.2 4.2 0 0 0 8.4 0M8 11.8V14"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 
