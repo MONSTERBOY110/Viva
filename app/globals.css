@@ -226,6 +226,25 @@
   }
 }
 
+/* The examiner writing: tally strokes drawing in sequence. Used wherever the
+   interview is being planned, so waiting looks like work rather than a hang. */
+@keyframes viva-stroke {
+  0%,
+  100% {
+    transform: scaleX(0.12);
+    opacity: 0.3;
+  }
+  45% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.viva-stroke {
+  transform-origin: left center;
+  animation: viva-stroke 1.5s ease-in-out infinite;
+}
+
 /* Reduced motion is a first class path: entrances complete instantly,
    nothing is hidden behind a transition. */
 @media (prefers-reduced-motion: reduce) {

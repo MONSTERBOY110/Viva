@@ -7,6 +7,8 @@ import type { Candidate, Feedback } from "@/lib/types";
 import { MindPanel, type SessionView } from "@/components/mind-panel";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useDictation, useExaminerVoice } from "@/components/use-voice";
+import { LogoMark } from "@/components/logo";
+import { PlanningState } from "@/components/planning-state";
 import { cn } from "@/lib/utils";
 
 type Exchange = {
@@ -186,11 +188,9 @@ export function InterviewRoom({
       </h1>
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-rule py-4">
         <div className="flex items-baseline gap-3">
-          <Link
-            href="/"
-            className="font-voice text-[1.25rem] text-ink transition-colors hover:text-quill"
-          >
-            Viva
+          <Link href="/" className="group flex items-center gap-2.5">
+            <LogoMark className="h-5 w-5 text-quill transition-colors group-hover:text-quill-bright" />
+            <span className="font-voice text-[1.25rem] leading-none text-ink">Viva</span>
           </Link>
           <span className="text-ui-sm text-dim">
             {name}
@@ -277,6 +277,8 @@ export function InterviewRoom({
       <div className="grid gap-10 py-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12">
         {/* The conversation: page prose, not a chat transcript */}
         <div>
+          {exchanges.length === 0 && thinking && <PlanningState name={name} />}
+
           <ol className="space-y-9">
             {exchanges.map((x, i) =>
               x.role === "interviewer" ? (
@@ -294,13 +296,11 @@ export function InterviewRoom({
               ),
             )}
 
-            {thinking && (
+            {thinking && exchanges.length > 0 && (
               <li aria-live="polite">
-                <p className="font-mono text-data text-faint">
-                  {exchanges.length === 0
-                    ? "reading the candidate's 31 days"
-                    : "considering that answer"}
-                  <span className="animate-pulse">...</span>
+                <p className="flex items-center gap-2.5 font-mono text-data text-quill">
+                  <ThinkingMark />
+                  considering that answer
                 </p>
               </li>
             )}
@@ -401,6 +401,33 @@ export function InterviewRoom({
 
 /* Icons are drawn inline rather than pulled from a set, so their stroke
    weight matches the hairline rules used everywhere else. */
+
+/** A compact writing mark, so a mid-interview wait matches the opening one. */
+function ThinkingMark() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 32 32" aria-hidden className="shrink-0">
+      <rect x="7" y="9" width="11" height="2.8" fill="currentColor" className="viva-stroke" />
+      <rect
+        x="7"
+        y="14.5"
+        width="15"
+        height="2.8"
+        fill="currentColor"
+        className="viva-stroke"
+        style={{ animationDelay: "0.18s" }}
+      />
+      <rect
+        x="7"
+        y="20"
+        width="8"
+        height="2.8"
+        fill="currentColor"
+        className="viva-stroke"
+        style={{ animationDelay: "0.36s" }}
+      />
+    </svg>
+  );
+}
 
 function SpeakerIcon({ on, speaking }: { on: boolean; speaking: boolean }) {
   return (

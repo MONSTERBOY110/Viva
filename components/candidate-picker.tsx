@@ -7,6 +7,7 @@ import { journeyOf, signalsOf, type DayMark } from "@/lib/journey";
 import type { Candidate } from "@/lib/types";
 import { Ledger } from "@/components/ledger";
 import { CustomCandidateDialog } from "@/components/custom-candidate-dialog";
+import { LaunchOverlay } from "@/components/planning-state";
 import { cn } from "@/lib/utils";
 
 const Spine = dynamic(() => import("@/components/spine").then((m) => m.Spine), {
@@ -46,6 +47,7 @@ export function CandidatePicker({ candidates }: { candidates: Candidate[] }) {
   const beginCustom = useCallback(
     (candidate: Candidate) => {
       const sessionId = crypto.randomUUID();
+      setStarting(candidate.member?.id ?? "custom");
       try {
         sessionStorage.setItem(
           `viva:candidate:${sessionId}`,
@@ -59,8 +61,12 @@ export function CandidatePicker({ candidates }: { candidates: Candidate[] }) {
     [router],
   );
 
+  const startingName =
+    candidates.find((c) => c.member?.id === starting)?.member?.name ?? null;
+
   return (
     <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[1fr_minmax(340px,420px)]">
+      {starting && <LaunchOverlay name={startingName} />}
       {/* The roster */}
       <div className="order-2 lg:order-1">
         <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-rule pb-3">

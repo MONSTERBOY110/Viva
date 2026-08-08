@@ -3,6 +3,7 @@ import { getSessionStore } from "@/lib/store/session";
 import { journeyOf, dayTitleFor, moduleTitleFor } from "@/lib/journey";
 import { Ledger } from "@/components/ledger";
 import { PrintButton } from "@/components/print-button";
+import { LogoMark } from "@/components/logo";
 import type { EvidenceItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -56,11 +57,9 @@ export default async function ReportPage({
   return (
     <main className="mx-auto min-h-dvh w-full max-w-[820px] px-5 pb-24 sm:px-8">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-rule py-6">
-        <Link
-          href="/"
-          className="font-voice text-[1.375rem] text-ink transition-colors hover:text-quill"
-        >
-          Viva
+        <Link href="/" className="group flex items-center gap-2.5">
+          <LogoMark className="h-6 w-6 text-quill transition-colors group-hover:text-quill-bright" />
+          <span className="font-voice text-[1.375rem] leading-none text-ink">Viva</span>
         </Link>
         <div className="flex items-center gap-5 font-mono text-data text-faint">
           <span>session {sessionId.slice(0, 8)}</span>

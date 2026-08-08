@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { Ledger } from "@/components/ledger";
+import { Bar } from "@/components/skeleton-bits";
 import type { DayMark } from "@/lib/journey";
 import { cn } from "@/lib/utils";
 
@@ -101,12 +102,30 @@ export function MindPanel({
 
   if (!view?.found) {
     return (
-      <aside className={cn("border border-rule bg-panel", className)}>
+      <aside
+        className={cn("border border-rule bg-panel", className)}
+        aria-label="Interviewer reasoning, loading"
+        aria-busy="true"
+      >
         <PanelHeader thinking={thinking} />
+        <div className="space-y-2.5 border-b border-rule-soft p-4">
+          <Bar w="5rem" h="0.6rem" />
+          <Bar w="9rem" h="0.8rem" />
+          <Bar w="100%" h="0.8rem" />
+          <Bar w="78%" h="0.8rem" />
+        </div>
+        <div className="space-y-2.5 border-b border-rule-soft p-4">
+          <Bar w="4.5rem" h="0.6rem" />
+          <Bar w="100%" h="1.2rem" />
+        </div>
         <div className="space-y-3 p-4">
-          <SkeletonLine w="60%" />
-          <SkeletonLine w="90%" />
-          <SkeletonLine w="75%" />
+          <Bar w="3rem" h="0.6rem" />
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="block space-y-1.5">
+              <Bar w="6rem" h="0.7rem" />
+              <Bar w={`${86 - i * 10}%`} h="0.7rem" />
+            </span>
+          ))}
         </div>
       </aside>
     );
@@ -332,6 +351,3 @@ function ClassificationTag({ value }: { value: string }) {
   return <span className={tone}>{value}</span>;
 }
 
-function SkeletonLine({ w }: { w: string }) {
-  return <span className="block h-3 animate-pulse bg-raised" style={{ width: w }} />;
-}
