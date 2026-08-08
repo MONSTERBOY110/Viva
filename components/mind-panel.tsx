@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { Ledger } from "@/components/ledger";
 import { Bar } from "@/components/skeleton-bits";
 import type { DayMark } from "@/lib/journey";
+import type { SteerKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
@@ -69,11 +70,16 @@ export function MindPanel({
   marks,
   thinking,
   className,
+  onSteer,
+  steering,
 }: {
   view: SessionView | null;
   marks: DayMark[];
   thinking: boolean;
   className?: string;
+  /** When provided, the panel stops being read only and takes the wheel. */
+  onSteer?: (kind: SteerKind, day?: number) => void;
+  steering?: SteerKind | null;
 }) {
   const rationaleRef = useRef<HTMLParagraphElement>(null);
   const lastRationale = useRef<string>("");
@@ -137,6 +143,73 @@ export function MindPanel({
       aria-label="Interviewer reasoning"
     >
       <PanelHeader thinking={thinking} />
+
+      {/* Live Steer: the panel is a control surface, not just a readout. */}
+      {onSteer && view.phase !== "done" && (
+        <section className="border-b border-rule-soft p-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="field-label">Take the wheel</h3>
+            {steering && (
+              <span className="font-mono text-data text-lamp">
+                applies next question
+              </span>
+            )}
+          </div>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            <SteerButton
+              label="press harder"
+              kind="harder"
+              active={steering === "harder"}
+              onSteer={onSteer}
+            />
+            <SteerButton
+              label="ease off"
+              kind="easier"
+              active={steering === "easier"}
+              onSteer={onSteer}
+            />
+            <SteerButton
+              label="move on"
+              kind="move-on"
+              active={steering === "move-on"}
+              onSteer={onSteer}
+            />
+            <SteerButton
+              label="wrap up"
+              kind="wrap"
+              active={steering === "wrap"}
+              onSteer={onSteer}
+            />
+          </div>
+          {topics.length > 0 && (
+            <div className="mt-2.5">
+              <label className="sr-only" htmlFor="steer-day">
+                Send the examiner to a specific curriculum day
+              </label>
+              <select
+                id="steer-day"
+                value=""
+                onChange={(e) => {
+                  const day = Number(e.target.value);
+                  if (day) onSteer("day", day);
+                }}
+                className="w-full border border-rule bg-ground px-2 py-1.5 font-mono text-data text-dim outline-none transition-colors hover:text-ink focus-visible:border-quill"
+              >
+                <option value="">jump to a planned day...</option>
+                {topics.map((t) => (
+                  <option key={t.day} value={t.day}>
+                    Day {t.day} · {t.module}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <p className="mt-2 text-ui-sm text-faint">
+            Guardrails still win. A steer cannot take the interview below its
+            required questions or curriculum coverage.
+          </p>
+        </section>
+      )}
 
       {/* Now probing */}
       <section className="border-b border-rule-soft p-4">
@@ -301,6 +374,34 @@ export function MindPanel({
         </section>
       )}
     </aside>
+  );
+}
+
+function SteerButton({
+  label,
+  kind,
+  active,
+  onSteer,
+}: {
+  label: string;
+  kind: SteerKind;
+  active: boolean;
+  onSteer: (kind: SteerKind, day?: number) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSteer(kind)}
+      aria-pressed={active}
+      className={cn(
+        "border px-2.5 py-1.5 font-mono text-data transition-colors",
+        active
+          ? "border-lamp text-lamp"
+          : "border-rule text-dim hover:border-quill hover:text-ink",
+      )}
+    >
+      {label}
+    </button>
   );
 }
 

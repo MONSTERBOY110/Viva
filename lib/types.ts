@@ -83,6 +83,21 @@ export type TurnEval = {
 
 export type TurnAction = "drill" | "escalate" | "switch" | "wrap";
 
+/**
+ * How an answer arrived. Real interview products care whether a reply was
+ * composed or pasted, so Viva records it as plain telemetry and shows it
+ * without accusing anyone of anything.
+ */
+export type AnswerTelemetry = {
+  /** Milliseconds from the question appearing to the answer being sent. */
+  ms: number;
+  chars: number;
+  /** True if any paste landed in the composer for this answer. */
+  pasted: boolean;
+  /** True if any of it arrived through speech recognition. */
+  spoken: boolean;
+};
+
 export type Turn = {
   q: string;
   a?: string;
@@ -91,6 +106,19 @@ export type Turn = {
   eval?: TurnEval;
   /** Brain panel: why this question was asked. */
   rationale: string;
+  telemetry?: AnswerTelemetry;
+  /** Set when an observer steered this question rather than the model choosing it. */
+  steeredBy?: SteerKind;
+};
+
+/** What an observer can ask the examiner to do next. */
+export type SteerKind = "harder" | "easier" | "move-on" | "wrap" | "day";
+
+export type Steer = {
+  kind: SteerKind;
+  /** Only meaningful when kind is "day". */
+  day?: number;
+  at: string;
 };
 
 export type SessionPhase = "active" | "wrapping" | "done";
@@ -125,4 +153,13 @@ export type SessionState = {
   report?: { feedback: Feedback; evidenceMap?: EvidenceItem[] };
   /** Facts recalled from Breeth about previous interviews (continuity). */
   priorMemories?: string[];
+  /**
+   * An observer's instruction for the next question, consumed by the next
+   * turn. It is a preference, never an override: the policy guardrails in
+   * lib/engine/policy.ts still run afterwards, so no steer can take the
+   * interview below the contract minimums.
+   */
+  pendingSteer?: Steer;
+  /** Every steer that was applied, for the reasoning replay. */
+  steerLog?: Steer[];
 };

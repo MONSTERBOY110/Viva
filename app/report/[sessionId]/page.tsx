@@ -4,7 +4,8 @@ import { journeyOf, dayTitleFor, moduleTitleFor } from "@/lib/journey";
 import { Ledger } from "@/components/ledger";
 import { PrintButton } from "@/components/print-button";
 import { LogoMark } from "@/components/logo";
-import type { EvidenceItem } from "@/lib/types";
+import { ReasoningReplay } from "@/components/reasoning-replay";
+import type { AnswerTelemetry, EvidenceItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -147,6 +148,8 @@ export default async function ReportPage({
         </ol>
       </section>
 
+      <ReasoningReplay turns={turns} marks={marks} />
+
       <section className="border-t border-rule py-8">
         <h2 className="field-label">Full transcript</h2>
         <ol className="mt-4 space-y-7">
@@ -171,9 +174,14 @@ export default async function ReportPage({
                 {turn.q}
               </p>
               {turn.a && (
-                <p className="mt-2.5 max-w-[62ch] border-l border-rule pl-4 text-ui text-dim">
-                  {turn.a}
-                </p>
+                <div className="mt-2.5 border-l border-rule pl-4">
+                  <p className="max-w-[62ch] text-ui text-dim">{turn.a}</p>
+                  {turn.telemetry && (
+                    <p className="mt-1.5 font-mono text-data text-faint">
+                      {describeTelemetry(turn.telemetry)}
+                    </p>
+                  )}
+                </div>
               )}
             </li>
           ))}
@@ -190,6 +198,26 @@ export default async function ReportPage({
       </footer>
     </main>
   );
+}
+
+/**
+ * How the answer arrived, stated plainly. This is observation, not accusation:
+ * a pasted answer is not proof of anything, it is simply a fact an interviewer
+ * would have noticed in the room.
+ */
+function describeTelemetry(t: AnswerTelemetry): string {
+  const seconds = Math.round(t.ms / 1000);
+  const time =
+    seconds < 60
+      ? `${seconds}s`
+      : `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`;
+
+  const how = t.spoken ? "spoken" : t.pasted ? "pasted" : "typed";
+  const rate =
+    !t.pasted && !t.spoken && seconds > 2
+      ? `, ${Math.round((t.chars / seconds) * 60)} chars per minute`
+      : "";
+  return `${how} in ${time}${rate}`;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

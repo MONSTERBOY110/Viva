@@ -14,6 +14,7 @@ import {
   MAX_TOPICS,
   pickTopics,
   pickUncoveredDay,
+  steerDirective,
   updateConfidence,
   type CurriculumModule,
   type TurnDecision,
@@ -295,5 +296,58 @@ describe("computeDirectives", () => {
     const d = computeDirectives(makeState(turns));
     expect(d.some((x) => /consecutive.*Day 12/i.test(x))).toBe(true);
     expect(d.some((x) => /don't know/i.test(x))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Live Steer: an observer shapes the interview, but never breaks it
+// ---------------------------------------------------------------------------
+
+describe("steerDirective", () => {
+  it("phrases every steer kind as an instruction", () => {
+    const kinds = ["harder", "easier", "move-on", "wrap"] as const;
+    for (const kind of kinds) {
+      const text = steerDirective({ kind, at: "now" });
+      expect(text).toMatch(/OBSERVER STEER/);
+      expect(text.length).toBeGreaterThan(20);
+    }
+    expect(steerDirective({ kind: "day", day: 23, at: "now" })).toContain("Day 23");
+  });
+});
+
+describe("guardrails still overrule an observer", () => {
+  it("a wrap steer cannot end the interview before the minimum", () => {
+    const turns = [makeTurn(7), makeTurn(8), makeTurn(11)];
+    // The steer would have made the model answer "wrap"; policy runs after.
+    const out = applyGuardrails(proposal({ action: "wrap" }), makeState(turns));
+    expect(out.action).not.toBe("wrap");
+    expect(turns.length).toBeLessThan(MIN_QUESTIONS);
+  });
+
+  it("a harder steer cannot escalate past the difficulty ceiling", () => {
+    const turns = [makeTurn(7), makeTurn(12, { difficulty: 3 })];
+    const out = applyGuardrails(
+      proposal({ action: "escalate", nextDay: 12, nextDifficulty: 9 as never }),
+      makeState(turns),
+    );
+    expect(out.nextDifficulty).toBeLessThanOrEqual(3);
+  });
+
+  it("a day steer to an invalid day is repaired rather than obeyed", () => {
+    const turns = [makeTurn(7)];
+    const out = applyGuardrails(proposal({ nextDay: 99 }), makeState(turns));
+    expect(out.nextDay).toBeGreaterThanOrEqual(1);
+    expect(out.nextDay).toBeLessThanOrEqual(31);
+    expect(out.forced.length).toBeGreaterThan(0);
+  });
+
+  it("a day steer cannot park three questions in a row on one day", () => {
+    const turns = [makeTurn(7), makeTurn(23), makeTurn(23)];
+    const out = applyGuardrails(
+      proposal({ action: "drill", nextDay: 23 }),
+      makeState(turns),
+    );
+    expect(out.nextDay).not.toBe(23);
+    expect(out.forced.join(" ")).toMatch(/consecutive/i);
   });
 });

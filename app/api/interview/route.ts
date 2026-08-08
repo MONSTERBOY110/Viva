@@ -5,7 +5,7 @@ import { seedQuestion } from "@/lib/engine/questions";
 import { runTurn } from "@/lib/engine/turn";
 import { recallCandidateMemories, writeInterviewMemory } from "@/lib/store/breeth";
 import { getSessionStore } from "@/lib/store/session";
-import type { Candidate, SessionState } from "@/lib/types";
+import type { AnswerTelemetry, Candidate, SessionState } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -37,10 +37,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const { sessionId, candidate, message } = (body ?? {}) as {
+    const { sessionId, candidate, message, telemetry } = (body ?? {}) as {
       sessionId?: unknown;
       candidate?: Candidate;
       message?: unknown;
+      telemetry?: unknown;
     };
 
     if (typeof sessionId !== "string" || sessionId.trim() === "") {
@@ -82,7 +83,11 @@ export async function POST(req: Request) {
     }
 
     // Regular turn: evaluate the answer, decide, ask, or wrap with the report.
-    const result = await runTurn(session, coerceMessage(message));
+    const result = await runTurn(
+      session,
+      coerceMessage(message),
+      coerceTelemetry(telemetry),
+    );
 
     if (result.wrap) {
       const report = await generateReport(result.state);
@@ -165,6 +170,23 @@ function openingReply(state: SessionState): string {
     `and I've planned our conversation around it.${continuity} We'll start where it matters most: ${reason}.` +
     `\n\n${state.turns![0].q}`
   );
+}
+
+/**
+ * Optional and entirely additive. A judge's harness never sends this, and the
+ * response shape is unchanged either way, so the contract is untouched.
+ * Anything malformed is simply dropped rather than trusted.
+ */
+function coerceTelemetry(raw: unknown): AnswerTelemetry | undefined {
+  if (typeof raw !== "object" || raw === null) return undefined;
+  const t = raw as Record<string, unknown>;
+  if (typeof t.ms !== "number" || !Number.isFinite(t.ms)) return undefined;
+  return {
+    ms: Math.max(0, Math.min(t.ms, 6 * 60 * 60 * 1000)),
+    chars: typeof t.chars === "number" ? Math.max(0, t.chars) : 0,
+    pasted: t.pasted === true,
+    spoken: t.spoken === true,
+  };
 }
 
 function coerceMessage(message: unknown): string {

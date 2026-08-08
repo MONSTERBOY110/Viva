@@ -1,7 +1,7 @@
 import { generateStructured } from "@/lib/llm/gemini";
 import { TURN_SYSTEM, turnPrompt } from "@/lib/llm/prompts/turn";
 import { TurnOutputSchema, type TurnOutput } from "@/lib/llm/schemas";
-import type { SessionState, TurnEval } from "@/lib/types";
+import type { AnswerTelemetry, SessionState, Steer, TurnEval } from "@/lib/types";
 import curriculum from "@/lib/data/curriculum.json";
 import {
   applyGuardrails,
@@ -9,6 +9,7 @@ import {
   distinctDays,
   moduleForDay,
   pickUncoveredDay,
+  steerDirective,
   updateConfidence,
   type CurriculumModule,
 } from "./policy";
@@ -33,14 +34,26 @@ export type TurnResult = {
 export async function runTurn(
   state: SessionState,
   message: string,
+  telemetry?: AnswerTelemetry,
 ): Promise<TurnResult> {
   const turns = state.turns ?? [];
   const current = turns.at(-1);
   if (current && current.a === undefined) {
     current.a = message;
+    if (telemetry) current.telemetry = telemetry;
   }
 
+  // An observer's steer joins the policy directives for this turn only, then
+  // is consumed. The guardrails below still run, so a steer can shape the
+  // interview but never take it below the contract minimums.
+  const steer = state.pendingSteer;
   const directives = computeDirectives(state);
+  if (steer) {
+    directives.unshift(steerDirective(steer));
+    state.pendingSteer = undefined;
+    state.steerLog = [...(state.steerLog ?? []), steer];
+  }
+
   let out: TurnOutput;
   let offline = false;
   try {
@@ -51,7 +64,7 @@ export async function runTurn(
     });
   } catch {
     offline = true;
-    out = offlineTurnOutput(state, message);
+    out = offlineTurnOutput(state, message, steer);
   }
 
   // Score the just-answered question and fold it into module confidence.
@@ -87,22 +100,30 @@ export async function runTurn(
       ? transitionReply(state, guarded.nextDay, out)
       : out.reply;
 
-  const rationale =
-    guarded.forced.length > 0
-      ? `${out.rationale} [policy: ${guarded.forced.join("; ")}]`
-      : out.rationale;
+  // The panel shows the whole chain of custody for this question: what the
+  // model decided, what an observer asked for, and what policy overruled.
+  const parts = [out.rationale];
+  if (steer) parts.push(`[steered by observer: ${steerLabel(steer)}]`);
+  if (guarded.forced.length > 0) {
+    parts.push(`[policy: ${guarded.forced.join("; ")}]`);
+  }
 
   turns.push({
     q: reply,
     day: guarded.nextDay,
     difficulty: guarded.nextDifficulty,
-    rationale,
+    rationale: parts.join(" "),
+    steeredBy: steer?.kind,
   });
   state.turns = turns;
   state.askedCount = turns.length;
   state.coverage = distinctDays(turns);
 
   return { state, reply, wrap: false };
+}
+
+function steerLabel(steer: Steer): string {
+  return steer.kind === "day" ? `go to Day ${steer.day}` : steer.kind;
 }
 
 /** A graceful topic-change line + deterministic seed question for the target day. */
@@ -124,7 +145,11 @@ function transitionReply(
  * Deterministic stand-in for the structured call when the LLM chain is down:
  * crude-but-fair heuristic evaluation, and a policy-guided next move.
  */
-function offlineTurnOutput(state: SessionState, message: string): TurnOutput {
+function offlineTurnOutput(
+  state: SessionState,
+  message: string,
+  steer?: Steer,
+): TurnOutput {
   const text = message.trim().toLowerCase();
   const dontKnow =
     /\b(don'?t know|no idea|not sure|can'?t answer|skip)\b/.test(text);
@@ -135,13 +160,40 @@ function offlineTurnOutput(state: SessionState, message: string): TurnOutput {
       : { score: 0.5, classification: "partial" as const, evidence: message.slice(0, 80) };
 
   const asked = (state.turns ?? []).length;
-  const nextDay = pickUncoveredDay(state);
+  const lastDay = state.turns?.at(-1)?.day;
+  const lastDifficulty = state.turns?.at(-1)?.difficulty ?? 1;
+
+  // Steering still works with the model chain down, it just resolves through
+  // plain rules instead of prose.
+  let action: TurnOutput["action"] = asked >= 12 ? "wrap" : "switch";
+  let nextDay = pickUncoveredDay(state);
+  let nextDifficulty = 1;
+
+  if (steer) {
+    if (steer.kind === "day" && steer.day) {
+      action = "switch";
+      nextDay = steer.day;
+    } else if (steer.kind === "harder") {
+      action = "escalate";
+      nextDay = lastDay ?? nextDay;
+      nextDifficulty = Math.min(3, lastDifficulty + 1);
+    } else if (steer.kind === "easier") {
+      action = "drill";
+      nextDay = lastDay ?? nextDay;
+      nextDifficulty = Math.max(1, lastDifficulty - 1);
+    } else if (steer.kind === "wrap") {
+      action = "wrap";
+    }
+  }
+
   return {
     evaluation,
-    action: asked >= 12 ? "wrap" : "switch",
+    action,
     nextDay,
-    nextDifficulty: 1,
-    rationale: "LLM unavailable, deterministic fallback kept the interview moving",
+    nextDifficulty,
+    rationale: steer
+      ? "observer steer applied by the deterministic path"
+      : "LLM unavailable, deterministic fallback kept the interview moving",
     reply: seedQuestion(nextDay),
   };
 }

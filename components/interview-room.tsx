@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { journeyOf, dayTitleFor } from "@/lib/journey";
-import type { Candidate, Feedback } from "@/lib/types";
+import type { Candidate, Feedback, SteerKind } from "@/lib/types";
 import { MindPanel, type SessionView } from "@/components/mind-panel";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useDictation, useExaminerVoice } from "@/components/use-voice";
@@ -43,14 +43,43 @@ export function InterviewRoom({
 
   const voice = useExaminerVoice();
   const dictation = useDictation({
-    onChunk: (chunk) =>
-      setDraft((prev) => (prev ? `${prev.trim()} ${chunk}` : chunk)),
+    onChunk: (chunk) => {
+      spokenRef2.current = true;
+      setDraft((prev) => (prev ? `${prev.trim()} ${chunk}` : chunk));
+    },
     // In hands-free mode, going quiet is how you finish an answer.
     onSilence: vivaMode ? () => sendRef.current() : undefined,
     silenceMs: 3000,
   });
 
   const marks = candidate ? journeyOf(candidate) : [];
+
+  /**
+   * Answer telemetry: how the reply arrived, not just what it said. Reset each
+   * time a new question appears so every measurement belongs to one answer.
+   */
+  const askedAt = useRef<number>(Date.now());
+  const pastedRef = useRef(false);
+  const spokenRef2 = useRef(false);
+
+  /** Live Steer: the observer nudges the examiner before its next question. */
+  const [steering, setSteering] = useState<SteerKind | null>(null);
+  const steer = useCallback(
+    async (kind: SteerKind, day?: number) => {
+      setSteering(kind);
+      try {
+        await fetch(`/api/session/${sessionId}/steer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind, day }),
+        });
+      } catch {
+        // A steer that does not land just means the examiner carries on alone.
+        setSteering(null);
+      }
+    },
+    [sessionId],
+  );
 
   const refreshMind = useCallback(async () => {
     try {
@@ -113,10 +142,23 @@ export function InterviewRoom({
       const res = await fetch("/api/interview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, message }),
+        body: JSON.stringify({
+          sessionId,
+          message,
+          telemetry: {
+            ms: Date.now() - askedAt.current,
+            chars: message.length,
+            pasted: pastedRef.current,
+            spoken: spokenRef2.current,
+          },
+        }),
       });
       const data = await res.json();
       setExchanges((prev) => [...prev, { role: "interviewer", text: data.reply }]);
+      setSteering(null);
+      askedAt.current = Date.now();
+      pastedRef.current = false;
+      spokenRef2.current = false;
       if (data.done) {
         setDone(true);
         setFeedback(data.feedback ?? null);
@@ -332,6 +374,9 @@ export function InterviewRoom({
                   // let the hands-free countdown submit underneath them.
                   dictation.clearTimer();
                 }}
+                onPaste={() => {
+                  pastedRef.current = true;
+                }}
                 onKeyDown={(e) => {
                   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
                     e.preventDefault();
@@ -388,13 +433,25 @@ export function InterviewRoom({
         {/* The Mind panel: sticky beside the conversation on desktop */}
         <div className="hidden lg:block">
           <div className="sticky top-6 max-h-[calc(100dvh-3rem)] overflow-y-auto">
-            <MindPanel view={view} marks={marks} thinking={thinking} />
+            <MindPanel
+              view={view}
+              marks={marks}
+              thinking={thinking}
+              onSteer={steer}
+              steering={steering}
+            />
           </div>
         </div>
       </div>
 
       {/* Mobile: a persistent summary bar that opens the full panel */}
-      <MobileMind view={view} marks={marks} thinking={thinking} />
+      <MobileMind
+        view={view}
+        marks={marks}
+        thinking={thinking}
+        onSteer={steer}
+        steering={steering}
+      />
     </div>
   );
 }
@@ -588,10 +645,14 @@ function MobileMind({
   view,
   marks,
   thinking,
+  onSteer,
+  steering,
 }: {
   view: SessionView | null;
   marks: Parameters<typeof MindPanel>[0]["marks"];
   thinking: boolean;
+  onSteer?: (kind: SteerKind, day?: number) => void;
+  steering?: SteerKind | null;
 }) {
   const current = view?.current;
   return (
@@ -615,7 +676,14 @@ function MobileMind({
           className="max-h-[85dvh] overflow-y-auto border-rule bg-ground p-0"
         >
           <SheetTitle className="sr-only">Interviewer reasoning</SheetTitle>
-          <MindPanel view={view} marks={marks} thinking={thinking} className="border-0" />
+          <MindPanel
+            view={view}
+            marks={marks}
+            thinking={thinking}
+            onSteer={onSteer}
+            steering={steering}
+            className="border-0"
+          />
         </SheetContent>
       </Sheet>
     </div>

@@ -4,6 +4,7 @@ import type {
   Difficulty,
   PlannedTopic,
   SessionState,
+  Steer,
   Turn,
   TurnAction,
 } from "@/lib/types";
@@ -315,6 +316,27 @@ export function applyGuardrails(
 // Pre-call directives, the same rules, phrased as instructions for the LLM
 // so its reply text already matches what policy will allow (TRD §5.2).
 // ---------------------------------------------------------------------------
+
+/**
+ * Turns an observer's steer into an instruction the model receives alongside
+ * the policy directives. Deliberately phrased as a strong request rather than
+ * a law, because applyGuardrails still runs afterwards and will overrule it if
+ * it would break the contract minimums.
+ */
+export function steerDirective(steer: Steer): string {
+  switch (steer.kind) {
+    case "harder":
+      return "OBSERVER STEER: press harder. Raise the difficulty and demand specifics rather than definitions.";
+    case "easier":
+      return "OBSERVER STEER: ease off. Drop the difficulty and rebuild confidence before probing again.";
+    case "move-on":
+      return "OBSERVER STEER: move on. Leave this topic and switch to a different planned curriculum day.";
+    case "wrap":
+      return "OBSERVER STEER: begin wrapping up. Close the interview as soon as the minimums allow.";
+    case "day":
+      return `OBSERVER STEER: go to Day ${steer.day} next and ask about that topic.`;
+  }
+}
 
 export function computeDirectives(state: SessionState): string[] {
   const turns = state.turns ?? [];
