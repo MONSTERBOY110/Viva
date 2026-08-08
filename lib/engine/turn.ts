@@ -81,6 +81,7 @@ export async function runTurn(
   const guarded = applyGuardrails(
     { action: out.action, nextDay: out.nextDay, nextDifficulty: out.nextDifficulty },
     state,
+    steer,
   );
 
   if (guarded.action === "wrap") {

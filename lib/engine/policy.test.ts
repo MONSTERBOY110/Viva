@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import curriculum from "@/lib/data/curriculum.json";
 import candidatesFile from "@/lib/data/candidates.json";
-import type { Candidate, SessionState, Turn } from "@/lib/types";
+import type { Candidate, SessionState, Steer, Turn } from "@/lib/types";
 import {
   applyGuardrails,
   computeDirectives,
@@ -311,7 +311,8 @@ describe("steerDirective", () => {
       expect(text).toMatch(/OBSERVER STEER/);
       expect(text.length).toBeGreaterThan(20);
     }
-    expect(steerDirective({ kind: "day", day: 23, at: "now" })).toContain("Day 23");
+    // The wording is free to change; what matters is that it names the day.
+    expect(steerDirective({ kind: "day", day: 23, at: "now" })).toContain("23");
   });
 });
 
@@ -349,5 +350,66 @@ describe("guardrails still overrule an observer", () => {
     );
     expect(out.nextDay).not.toBe(23);
     expect(out.forced.join(" ")).toMatch(/consecutive/i);
+  });
+});
+
+describe("a steer moves difficulty in the direction it asked for", () => {
+  const steerOf = (kind: "harder" | "easier"): Steer => ({ kind, at: "now" });
+
+  it("press harder raises difficulty even when the model kept it flat", () => {
+    const turns = [makeTurn(7), makeTurn(8, { difficulty: 1 })];
+    const out = applyGuardrails(
+      proposal({ action: "switch", nextDay: 10, nextDifficulty: 1 }),
+      makeState(turns),
+      steerOf("harder"),
+    );
+    expect(out.nextDifficulty).toBe(2);
+    expect(out.forced.join(" ")).toMatch(/difficulty raised/i);
+  });
+
+  it("press harder at the ceiling holds at L3 rather than dropping", () => {
+    const turns = [makeTurn(7), makeTurn(8, { difficulty: 3 })];
+    const out = applyGuardrails(
+      proposal({ action: "switch", nextDay: 10, nextDifficulty: 2 }),
+      makeState(turns),
+      steerOf("harder"),
+    );
+    expect(out.nextDifficulty).toBe(3);
+  });
+
+  it("a weak answer still outranks a harder steer", () => {
+    const turns = [
+      makeTurn(7),
+      makeTurn(8, {
+        difficulty: 2,
+        eval: { score: 0.2, classification: "weak", evidence: "vague" },
+      }),
+    ];
+    const out = applyGuardrails(
+      proposal({ action: "drill", nextDay: 8, nextDifficulty: 2 }),
+      makeState(turns),
+      steerOf("harder"),
+    );
+    expect(out.nextDifficulty).toBeLessThanOrEqual(2);
+  });
+
+  it("ease off lowers difficulty and never below L1", () => {
+    const turns = [makeTurn(7), makeTurn(8, { difficulty: 1 })];
+    const out = applyGuardrails(
+      proposal({ action: "drill", nextDay: 8, nextDifficulty: 3 }),
+      makeState(turns),
+      steerOf("easier"),
+    );
+    expect(out.nextDifficulty).toBe(1);
+  });
+
+  it("with no steer, difficulty is left exactly as decided", () => {
+    const turns = [makeTurn(7), makeTurn(8, { difficulty: 1 })];
+    const out = applyGuardrails(
+      proposal({ action: "switch", nextDay: 10, nextDifficulty: 1 }),
+      makeState(turns),
+    );
+    expect(out.nextDifficulty).toBe(1);
+    expect(out.forced.join(" ")).not.toMatch(/steer/i);
   });
 });

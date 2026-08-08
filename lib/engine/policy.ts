@@ -205,6 +205,8 @@ function clampDifficulty(d: number): Difficulty {
 export function applyGuardrails(
   proposed: TurnDecision,
   state: SessionState,
+  /** An observer's steer for this turn, honoured only where rules allow. */
+  steer?: Steer,
 ): GuardedDecision {
   const forced: string[] = [];
   const turns = state.turns ?? [];
@@ -299,14 +301,42 @@ export function applyGuardrails(
   }
 
   // Rule: escalation is earned, cap difficulty jumps after weak answers.
+  const earnedEscalation = !(lastEval && lastEval.score < 0.4);
   if (
     action !== "wrap" &&
-    lastEval &&
-    lastEval.score < 0.4 &&
+    !earnedEscalation &&
     nextDifficulty > (turns.at(-1)?.difficulty ?? 1)
   ) {
     nextDifficulty = turns.at(-1)?.difficulty ?? 1;
     forced.push("difficulty increase blocked after a weak answer");
+  }
+
+  /**
+   * Rule: an explicit steer moves difficulty in the direction it asked for.
+   *
+   * The model treats "press harder" loosely: it will happily satisfy it by
+   * changing topic at the same level, or, when already at L3, by switching and
+   * dropping to L2. Both read to the observer as the button doing nothing, or
+   * worse, the opposite. Difficulty is the visible signal, so it is settled
+   * here rather than requested in a prompt. A weak answer still outranks a
+   * harder steer, because kindness to the candidate outranks the observer.
+   */
+  const lastDifficulty = turns.at(-1)?.difficulty ?? 1;
+  if (steer && action !== "wrap") {
+    if (steer.kind === "harder" && earnedEscalation) {
+      const target = clampDifficulty(Math.max(nextDifficulty, lastDifficulty + 1));
+      if (target !== nextDifficulty) {
+        forced.push(`steer: difficulty raised to L${target}`);
+        nextDifficulty = target;
+      }
+    }
+    if (steer.kind === "easier") {
+      const target = clampDifficulty(Math.min(nextDifficulty, lastDifficulty - 1));
+      if (target !== nextDifficulty) {
+        forced.push(`steer: difficulty lowered to L${target}`);
+        nextDifficulty = target;
+      }
+    }
   }
 
   return { action, nextDay, nextDifficulty, forced };
@@ -326,15 +356,31 @@ export function applyGuardrails(
 export function steerDirective(steer: Steer): string {
   switch (steer.kind) {
     case "harder":
-      return "OBSERVER STEER: press harder. Raise the difficulty and demand specifics rather than definitions.";
+      // Explicit about BOTH axes. An earlier version only said "raise the
+      // difficulty", and the model satisfied it by switching to a fresh topic
+      // at the same level, which reads to the observer as nothing happening.
+      return (
+        "OBSERVER STEER: press harder. Set action to escalate and STAY on the current curriculum day. " +
+        "Raise nextDifficulty by one level (to 3 if it is already 2). Ask for a specific mechanism, " +
+        "trade-off or number, not another definition."
+      );
     case "easier":
-      return "OBSERVER STEER: ease off. Drop the difficulty and rebuild confidence before probing again.";
+      return (
+        "OBSERVER STEER: ease off. Set action to drill and STAY on the current curriculum day. " +
+        "Lower nextDifficulty by one level and ask something concrete they can get right."
+      );
     case "move-on":
-      return "OBSERVER STEER: move on. Leave this topic and switch to a different planned curriculum day.";
+      return (
+        "OBSERVER STEER: move on. Set action to switch and choose a different planned curriculum day " +
+        "that is not yet covered. Do not ask about the current day again."
+      );
     case "wrap":
-      return "OBSERVER STEER: begin wrapping up. Close the interview as soon as the minimums allow.";
+      return "OBSERVER STEER: begin wrapping up. Set action to wrap and close the interview.";
     case "day":
-      return `OBSERVER STEER: go to Day ${steer.day} next and ask about that topic.`;
+      return (
+        `OBSERVER STEER: set action to switch and set nextDay to ${steer.day}. ` +
+        `Ask about that curriculum day specifically, whatever you were planning instead.`
+      );
   }
 }
 

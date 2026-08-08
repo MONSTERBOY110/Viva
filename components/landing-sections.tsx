@@ -262,7 +262,7 @@ export function LandingFooter() {
         <div className="flex items-center gap-3">
           <LogoMark className="h-7 w-7 text-quill-dim" />
           <p className="max-w-[42ch] font-mono text-data text-faint">
-            Built solo for the ABTalks Vibe Code Hackathon, Problem Statement 2.
+            Built By Subhojyoti Maity.
           </p>
         </div>
         <nav className="flex flex-wrap items-center gap-5 font-mono text-data text-dim">
