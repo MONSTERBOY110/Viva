@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/logo";
-import { Magnetic, RevealGroup } from "@/components/scroll-motion";
+import { RevealGroup } from "@/components/scroll-motion";
 
 /**
  * The explanatory half of the landing page. Every example below is real
@@ -213,74 +213,6 @@ export function SpokenSection() {
           begins in roughly six tenths of a second. Answering uses the browser
           itself, so it costs nothing.
         </p>
-      </div>
-    </section>
-  );
-}
-
-export function JudgeSection() {
-  return (
-    <section className="border-t border-rule py-16 sm:py-20">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:gap-16">
-        <div className="min-w-0">
-          <h2 className="font-voice text-[1.75rem] leading-tight text-ink">
-            One endpoint, exactly to spec.
-          </h2>
-          <p className="mt-4 max-w-[52ch] text-body text-dim">
-            <code className="font-mono text-ui text-quill">
-              POST /api/interview
-            </code>{" "}
-            takes a candidate on the first call and a message on every call
-            after, keyed by <code className="font-mono text-ui">sessionId</code>.
-            It returns <code className="font-mono text-ui">reply</code> and{" "}
-            <code className="font-mono text-ui">done</code> every turn, plus a{" "}
-            <code className="font-mono text-ui">feedback</code> object at the
-            end. Extra fields are additive only, and the reasoning panel reads a
-            separate route so the graded response never changes shape.
-          </p>
-          <p className="mt-4 max-w-[52ch] text-ui text-faint">
-            It never returns 5xx. A malformed body gets a 400 with a JSON error,
-            an unknown session restarts politely in character, and if the
-            language model is unreachable the interview still completes on
-            deterministic fallbacks.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Magnetic>
-              <Link
-                href="/api-docs"
-                className="inline-flex min-h-11 items-center bg-quill-bright px-5 text-ui font-medium text-ground transition-opacity hover:opacity-90"
-              >
-                Run the contract live
-              </Link>
-            </Magnetic>
-            <Magnetic>
-              <a
-                href="https://github.com/MONSTERBOY110/Viva"
-                className="inline-flex min-h-11 items-center border border-rule px-5 text-ui text-ink transition-colors hover:border-quill"
-              >
-                Read the source
-              </a>
-            </Magnetic>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="field-label">Built on</h3>
-          <dl className="mt-4 space-y-3">
-            {[
-              ["Engine", "Gemini 3.5 Flash, with a fallback model and a deterministic path"],
-              ["State", "Upstash Redis, keyed by sessionId"],
-              ["Memory", "Breeth, so a second interview remembers the first"],
-              ["Voice", "ElevenLabs, streamed"],
-              ["Surface", "Next.js 15, Tailwind v4, Radix, GSAP, react-three-fiber"],
-            ].map(([k, v]) => (
-              <div key={k} className="grid grid-cols-[5rem_1fr] gap-3">
-                <dt className="font-mono text-data text-faint">{k}</dt>
-                <dd className="text-ui-sm text-dim">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
       </div>
     </section>
   );

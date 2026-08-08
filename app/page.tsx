@@ -4,7 +4,6 @@ import { Wordmark } from "@/components/logo";
 import { voiceEnabled } from "@/lib/voice";
 import {
   EvidenceSection,
-  JudgeSection,
   LandingFooter,
   MindSection,
   SpokenSection,
@@ -39,12 +38,13 @@ export default function Home() {
       </header>
 
       {/* The thesis, then the action immediately below it. */}
-      <section className="grid gap-6 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-end lg:gap-16 lg:py-16">
+      <section className="grid gap-6 pb-12 pt-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start lg:gap-16 lg:pb-14 lg:pt-10">
         <h1 className="text-balance font-voice text-[2rem] font-medium leading-[1.08] tracking-[-0.02em] text-ink sm:text-display">
           The interviewer that
           <br className="hidden sm:inline" /> already read your homework.
         </h1>
-        <div className="max-w-[44ch] lg:pb-1.5">
+        {/* Nudged down so its first line sits on the headline's baseline. */}
+        <div className="max-w-[44ch] lg:pt-2">
           <p className="text-body text-dim">
             Viva examines graduates of the 31 day AI cohort. Every question is
             drawn from what this person actually built, retried, or skipped, and
@@ -92,7 +92,6 @@ export default function Home() {
         <Reveal><MindSection /></Reveal>
         <Reveal><EvidenceSection /></Reveal>
         {spoken && <Reveal><SpokenSection /></Reveal>}
-        <Reveal><JudgeSection /></Reveal>
       </div>
 
       <LandingFooter />
