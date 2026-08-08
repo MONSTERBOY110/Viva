@@ -39,7 +39,7 @@ Every candidate's 31 days is drawn in **the examiner's own notation**: one strok
 
 ![The interview and the Interviewer Mind panel](./docs/screenshots/02-interview-and-mind-panel.png)
 
-The **Interviewer Mind** panel is the differentiator. While you answer, it shows why this question was chosen, which curriculum days are covered against the minimum, per module confidence updating live, the remaining plan, and any policy override that fired. Most interview agents are a black box. This one shows its work.
+The **Interviewer Mind** panel is the differentiator. While you answer, it shows why this question was chosen, which curriculum days are covered against the minimum, per module confidence updating live, the remaining plan, and any policy override that fired. Most interview agents are a black box. This one shows its work, and lets you take the wheel.
 
 ![The evidence linked report](./docs/screenshots/04-report-evidence.png)
 

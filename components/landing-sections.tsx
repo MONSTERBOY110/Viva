@@ -106,7 +106,7 @@ export function MindSection() {
                 Interviewer mind
               </span>
             </div>
-            <div className="space-y-2 p-4">
+            <div className="space-y-2 border-b border-rule-soft p-4">
               <p className="field-label">Now probing</p>
               <p className="font-mono text-ui-sm text-quill">
                 Day 8 <span className="text-dim">· Embeddings &amp; Vector Search</span>
@@ -116,6 +116,43 @@ export function MindSection() {
                 Databases Overview on Day 8
               </p>
             </div>
+            <div className="p-4">
+              <p className="field-label">Take the wheel</p>
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {["press harder", "ease off", "move on", "wrap up"].map((s) => (
+                  <span
+                    key={s}
+                    className="border border-rule px-2.5 py-1.5 font-mono text-data text-dim"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 max-w-[52ch]">
+            <h3 className="font-voice text-[1.25rem] text-ink">
+              And you can grab the wheel mid-interview.
+            </h3>
+            <p className="mt-3 text-body text-dim">
+              Every other interview agent is something you watch. Push the
+              examiner while it is running and it obeys on the very next
+              question, in character.
+            </p>
+            <p className="mt-3 text-body text-dim">
+              The interesting part is what happens when a steer breaks a rule.
+              It loses. Ask it to wrap at question two and it politely carries
+              on, because the guardrails run after the steer, not before it:
+            </p>
+            <p className="mt-3 border-l border-rule pl-4 font-mono text-data leading-relaxed text-faint">
+              The candidate defined embeddings but failed to address why SQL is
+              insufficient.{" "}
+              <span className="text-lamp">[steered by observer: wrap]</span>{" "}
+              <span className="text-lamp">
+                [policy: difficulty increase blocked after a weak answer]
+              </span>
+            </p>
           </div>
         </div>
 

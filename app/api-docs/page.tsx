@@ -121,6 +121,17 @@ export default function ApiDocsPage() {
         <h2 className="field-label">Behaviour a test harness can rely on</h2>
         <ul className="mt-4 space-y-2.5">
           <Guarantee>
+            Everything Viva adds beyond the specification lives on its own
+            routes, never on this one.{" "}
+            <code className="font-mono text-quill">GET /api/session/[id]</code>{" "}
+            feeds the reasoning panel and{" "}
+            <code className="font-mono text-quill">
+              POST /api/session/[id]/steer
+            </code>{" "}
+            lets an observer steer the examiner, so an automated test of the
+            contract never sees a field it did not send.
+          </Guarantee>
+          <Guarantee>
             Never a 5xx. A malformed body returns 400 with a JSON error, an
             unknown sessionId without a candidate returns 200 and restarts in
             character, and any unexpected failure returns 200 with a graceful
