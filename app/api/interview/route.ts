@@ -116,8 +116,15 @@ async function startSession(
   sessionId: string,
   candidate: Candidate,
 ): Promise<SessionState> {
-  const priorMemories = await recallCandidateMemories(candidate.member?.id);
-  const plan = await buildPlan(candidate, priorMemories);
+  // These were sequential, which cost the judge about three seconds of dead
+  // time before the first question. The planner's topic choice is pure
+  // TypeScript and never depended on memory; only the prose did. Running them
+  // together keeps the continuity line and the memory-aware turn prompts while
+  // charging only the slower of the two.
+  const [priorMemories, plan] = await Promise.all([
+    recallCandidateMemories(candidate.member?.id),
+    buildPlan(candidate),
+  ]);
   const first = plan.topics[0];
   return {
     sessionId,

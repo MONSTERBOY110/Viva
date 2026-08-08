@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sessionStoreKind } from "@/lib/store/session";
 import { voiceEnabled } from "@/lib/voice";
 import { breethEnabled } from "@/lib/store/breeth";
+import { modelChainStatus } from "@/lib/llm/gemini";
 
 export const dynamic = "force-dynamic";
 
@@ -22,5 +23,7 @@ export async function GET() {
     engine: process.env.GEMINI_API_KEY ? "gemini" : "deterministic",
     voice: voiceEnabled() ? "on" : "off",
     memory: breethEnabled() ? "on" : "off",
+    /** Any non-zero cooldown means that model's free tier quota is spent. */
+    models: modelChainStatus(),
   });
 }

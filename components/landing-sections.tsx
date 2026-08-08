@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/logo";
+import { Magnetic, RevealGroup } from "@/components/scroll-motion";
 
 /**
  * The explanatory half of the landing page. Every example below is real
@@ -125,7 +126,7 @@ export function MindSection() {
             enforced in pure TypeScript and unit tested, not requested politely
             from a language model.
           </p>
-          <ul className="mt-4 space-y-2.5">
+          <RevealGroup as="ul" className="mt-4 space-y-2.5" stagger={0.06}>
             {rules.map((rule) => (
               <li
                 key={rule}
@@ -137,7 +138,7 @@ export function MindSection() {
                 <span className="max-w-[40ch]">{rule}</span>
               </li>
             ))}
-          </ul>
+          </RevealGroup>
         </div>
       </div>
     </section>
@@ -244,18 +245,22 @@ export function JudgeSection() {
             deterministic fallbacks.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/api-docs"
-              className="inline-flex min-h-11 items-center bg-quill-bright px-5 text-ui font-medium text-ground transition-opacity hover:opacity-90"
-            >
-              Run the contract live
-            </Link>
-            <a
-              href="https://github.com/MONSTERBOY110/Viva"
-              className="inline-flex min-h-11 items-center border border-rule px-5 text-ui text-ink transition-colors hover:border-quill"
-            >
-              Read the source
-            </a>
+            <Magnetic>
+              <Link
+                href="/api-docs"
+                className="inline-flex min-h-11 items-center bg-quill-bright px-5 text-ui font-medium text-ground transition-opacity hover:opacity-90"
+              >
+                Run the contract live
+              </Link>
+            </Magnetic>
+            <Magnetic>
+              <a
+                href="https://github.com/MONSTERBOY110/Viva"
+                className="inline-flex min-h-11 items-center border border-rule px-5 text-ui text-ink transition-colors hover:border-quill"
+              >
+                Read the source
+              </a>
+            </Magnetic>
           </div>
         </div>
 

@@ -11,12 +11,15 @@ import {
   TranscriptSection,
 } from "@/components/landing-sections";
 import Link from "next/link";
+import { ScrollProgress, Reveal } from "@/components/scroll-motion";
+import { ScrollLedger } from "@/components/scroll-ledger";
 
 export default function Home() {
   const spoken = voiceEnabled();
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-[1240px] px-5 sm:px-8">
+      <ScrollProgress />
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-rule py-6">
         <Wordmark />
         <nav className="flex items-center gap-5 font-mono text-data text-dim">
@@ -84,11 +87,12 @@ export default function Home() {
 
       {/* Why it is not a thin wrapper, shown with real output. */}
       <div className="mt-20">
-        <TranscriptSection />
-        <MindSection />
-        <EvidenceSection />
-        {spoken && <SpokenSection />}
-        <JudgeSection />
+        <ScrollLedger />
+        <Reveal><TranscriptSection /></Reveal>
+        <Reveal><MindSection /></Reveal>
+        <Reveal><EvidenceSection /></Reveal>
+        {spoken && <Reveal><SpokenSection /></Reveal>}
+        <Reveal><JudgeSection /></Reveal>
       </div>
 
       <LandingFooter />

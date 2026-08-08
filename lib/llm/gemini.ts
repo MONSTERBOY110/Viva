@@ -12,10 +12,22 @@ import { scrubStrings } from "@/lib/text";
  * gemini-3.5-flash (stable, free tier) then gemini-3.1-flash-lite (stable, free tier).
  */
 
-const PRIMARY_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.5-flash";
-const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL ?? "gemini-3.1-flash-lite";
+/**
+ * The chain, best first. Free tier quota is per model, so a third rung means
+ * a judge keeps getting real answers after the first two are spent. Verified
+ * available on 8 Aug 2026; gemini-2.5-flash-lite does not exist on this API.
+ */
+const MODEL_CHAIN = [
+  process.env.GEMINI_MODEL ?? "gemini-3.5-flash",
+  process.env.GEMINI_FALLBACK_MODEL ?? "gemini-3.1-flash-lite",
+  process.env.GEMINI_LAST_RESORT_MODEL ?? "gemini-2.5-flash",
+];
+
 const CALL_TIMEOUT_MS = 25_000;
 const ATTEMPTS_PER_MODEL = 2;
+/** Used when a 429 arrives without a parseable retry hint. */
+const DEFAULT_COOLDOWN_MS = 30_000;
+const MAX_COOLDOWN_MS = 5 * 60_000;
 
 export class LlmError extends Error {
   constructor(
@@ -48,6 +60,61 @@ function sleep(ms: number): Promise<void> {
 
 function backoffMs(attempt: number): number {
   return 500 * 2 ** attempt + Math.random() * 250;
+}
+
+/* ---------------------------------------------------------------------------
+   Quota circuit breaker.
+
+   A 429 means the model's quota is spent, not that the call was unlucky, so
+   retrying the same model is pure latency. Measured 8 Aug 2026: with the
+   primary exhausted, the old retry-then-fall-through path added about 1.4s of
+   pointless waiting to every single call. Once a model reports 429 it is
+   skipped until its own retry hint expires.
+--------------------------------------------------------------------------- */
+
+const g = globalThis as typeof globalThis & {
+  __vivaModelCooldown?: Map<string, number>;
+};
+
+function cooldowns(): Map<string, number> {
+  if (!g.__vivaModelCooldown) g.__vivaModelCooldown = new Map();
+  return g.__vivaModelCooldown;
+}
+
+function isCoolingDown(model: string): boolean {
+  const until = cooldowns().get(model);
+  if (until === undefined) return false;
+  if (Date.now() >= until) {
+    cooldowns().delete(model);
+    return false;
+  }
+  return true;
+}
+
+function isQuotaError(message: string): boolean {
+  return (
+    /429|RESOURCE_EXHAUSTED|quota|rate limit/i.test(message) &&
+    !/API key|PERMISSION_DENIED/i.test(message)
+  );
+}
+
+/** Gemini reports "Please retry in 15.5s"; honour it rather than guessing. */
+function coolDown(model: string, message: string): void {
+  const hint =
+    message.match(/retry in (\d+(?:\.\d+)?)s/i)?.[1] ??
+    message.match(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/i)?.[1];
+  const ms = hint ? Number(hint) * 1000 + 500 : DEFAULT_COOLDOWN_MS;
+  cooldowns().set(model, Date.now() + Math.min(ms, MAX_COOLDOWN_MS));
+  console.warn(`[gemini] ${model} quota exhausted, skipping for ${Math.round(ms / 1000)}s`);
+}
+
+/** Exposed for /api/health so an exhausted key is visible without guessing. */
+export function modelChainStatus(): { model: string; cooldownMs: number }[] {
+  const now = Date.now();
+  return MODEL_CHAIN.map((model) => ({
+    model,
+    cooldownMs: Math.max(0, (cooldowns().get(model) ?? 0) - now),
+  }));
 }
 
 /** Defensive: strip markdown fences if the model ever wraps its JSON. */
@@ -108,18 +175,39 @@ export async function generateStructured<T>(
     throw new LlmError("GEMINI_API_KEY is not configured", "unconfigured");
   }
   let lastError: unknown;
-  for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
+  let triedAnything = false;
+
+  for (const model of MODEL_CHAIN) {
+    // Skip a model whose quota we already know is spent.
+    if (isCoolingDown(model)) continue;
+
     for (let attempt = 0; attempt < ATTEMPTS_PER_MODEL; attempt++) {
+      triedAnything = true;
       try {
         return await callModel(model, schema, opts);
       } catch (err) {
         lastError = err;
         const message = String(err);
-        // Auth/config problems won't heal with retries on the same key.
-        if (/API key|PERMISSION_DENIED|UNAUTHENTICATED/i.test(message)) break;
+
+        // Auth problems will not heal on any model with this key.
+        if (/API key|PERMISSION_DENIED|UNAUTHENTICATED/i.test(message)) {
+          throw new LlmError(`credentials rejected: ${message}`);
+        }
+
+        // Quota is not bad luck. Move to the next model immediately.
+        if (isQuotaError(message)) {
+          coolDown(model, message);
+          break;
+        }
+
+        // A malformed or empty response is worth one honest retry.
         if (attempt + 1 < ATTEMPTS_PER_MODEL) await sleep(backoffMs(attempt));
       }
     }
+  }
+
+  if (!triedAnything) {
+    throw new LlmError("every model is rate limited right now");
   }
   throw new LlmError(`all models failed: ${String(lastError)}`);
 }

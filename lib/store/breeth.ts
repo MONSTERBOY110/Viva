@@ -16,7 +16,10 @@ const BASE_URL = "https://api.thebreeth.com/v1";
 // Recall sits on the start request's critical path, keep it tight.
 // Writes run via after() once the response is sent, and Breeth extracts
 // entities synchronously on write (measured >4s), give them room.
-const RECALL_TIMEOUT_MS = 4_000;
+// Recall now runs alongside the planner rather than before it, so this only
+// needs to beat the planner's own call. Measured 8 Aug 2026: Breeth search
+// answers in roughly 3s, so a 4s ceiling was silently setting the floor.
+const RECALL_TIMEOUT_MS = 3_500;
 const WRITE_TIMEOUT_MS = 45_000; // must outlast the write's wait_seconds=30
 
 export function breethEnabled(): boolean {

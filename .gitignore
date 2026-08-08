@@ -37,6 +37,7 @@ yarn-error.log*
 # local tooling / session artifacts
 .remember/
 .playwright-mcp/
+help
 
 # vercel
 .vercel
