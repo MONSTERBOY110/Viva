@@ -22,6 +22,12 @@ export default function Home() {
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-rule py-6">
         <Wordmark />
         <nav className="flex items-center gap-5 font-mono text-data text-dim">
+          <Link
+            href="/poll"
+            className="-my-1.5 border border-quill-dim px-3 py-1.5 text-quill transition-colors hover:border-quill hover:text-quill-bright"
+          >
+            show of hands
+          </Link>
           <Link href="/api-docs" className="-my-2 py-2 transition-colors hover:text-quill">
             api
           </Link>
